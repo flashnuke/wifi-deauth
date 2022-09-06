@@ -26,7 +26,7 @@ class Interceptor:
                 pass
 
     def _scan_for_aps(self):
-        for ch in self.interface:
+        for ch in self.ch_range:
             print(f"setting and scanning channel {ch}...")
             self._set_channel(ch)
             sniff(prn=self._ap_scan_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
