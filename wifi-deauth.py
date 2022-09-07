@@ -194,7 +194,7 @@ class Interceptor:
 
 if __name__ == "__main__":
     print(f"\n{BANNER}\n"
-          f"Make sure of the following:]n"
+          f"Make sure of the following:\n"
           f"1. You are running as sudo\n"
           f"2. You are passing an interface (-i / --iface <name>)\n"
           f"3. You have monitor mode enabled (refer to docs)\n\n" # todo add to docs how to
