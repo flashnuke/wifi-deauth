@@ -76,11 +76,14 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         printf("")
-        for ch in self._CH_RANGE:
-            self._set_channel(ch)
-            clear_line()
-            self._print_channel()
-            sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
+        try:
+            for ch in self._CH_RANGE:
+                self._set_channel(ch)
+                clear_line()
+                self._print_channel()
+                sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
+        except KeyboardInterrupt:
+            return
 
     def _start_initial_ap_scan(self):
         printf("[*] Starting AP scan, press <CTRL+C> to end...")
