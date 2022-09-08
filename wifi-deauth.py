@@ -60,15 +60,15 @@ class Interceptor:
             if pkt.haslayer(Dot11Elt):
                 ssid = pkt[Dot11Elt].info.decode()
                 if ssid:
-                    ap_mac = pkt.addr3
+                    ap_mac = str(pkt.addr3)
                     if ssid not in self._active_aps:
                         self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                         printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                    c_mac = pkt.addr1
-                    printf(c_mac)
+                    c_mac = str(pkt.addr1)
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        printf(str(self._active_aps[ssid]["clients"]))
                         # todo check type of pkt instead
+                        printf(c_mac)
+                        printf(str(self._active_aps[ssid]["clients"]))
                         self._active_aps[ssid]["clients"].append(c_mac)
                     self._current_channel_aps.add(ssid)
         except:
@@ -126,7 +126,7 @@ class Interceptor:
             if pkt.haslayer(Dot11Elt):
                 ssid = pkt[Dot11Elt].info.decode()
                 if ssid == self.target_ssid:
-                    c_mac = pkt.addr1
+                    c_mac = str(pkt.addr1)
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
@@ -167,7 +167,7 @@ class Interceptor:
             t.start()
 
         printf(DELIM)
-        printf(DELIM)
+        printf("")
         try:
             while not self._abort:
                 printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
