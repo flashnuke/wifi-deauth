@@ -129,8 +129,6 @@ class Interceptor:
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        printf(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
-                        printf(str(self._active_aps[self.target_ssid]["clients"]))
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
@@ -150,7 +148,7 @@ class Interceptor:
             if new_postf >= 0 and i != 0:
                 modified = copy.deepcopy(original_addr)
                 modified[-1] = hex(new_postf).replace('0x', '')
-                possible_mac_addrs.append(''.join(modified))
+                possible_mac_addrs.append(':'.join(modified))
         return possible_mac_addrs
                 
     def _run_deauther(self):
