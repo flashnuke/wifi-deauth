@@ -110,7 +110,8 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            chosen = int(input(f"[*] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}"))
+            printf(f"[*] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            chosen = int(input())
 
         return target_map[chosen]
 
