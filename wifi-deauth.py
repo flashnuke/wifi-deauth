@@ -59,6 +59,7 @@ class Interceptor:
         try:
             if pkt.haslayer(Dot11Elt):
                 ssid = pkt[Dot11Elt].info.decode()
+                printf(ssid)
                 if ssid:
                     ap_mac = pkt.addr3
                     if ssid not in self._active_aps:
