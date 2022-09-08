@@ -102,7 +102,8 @@ class Interceptor:
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
-            printf(f"[{ctr}] -> {self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'])}")
+            pref = f"[{ctr}] -> "
+            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
             self._abort = True
@@ -115,8 +116,8 @@ class Interceptor:
 
         return target_map[chosen]
 
-    def _generate_ssid_str(self, ssid, ch, mcaddr):
-        return f"{ssid.ljust(self._ssid_str_pad, ' ')}{str(ch).ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
+    def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
+        return f"{ssid.ljust(self._ssid_str_pad, ' ')}{str(ch).ljust(self._ssid_str_pad // 2 - preflen, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
