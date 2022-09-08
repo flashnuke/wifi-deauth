@@ -158,7 +158,7 @@ class Interceptor:
         possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())
         
         rd_frm = RadioTap()
-        deauth_frm = Dot11Deauth()
+        deauth_frm = Dot11Deauth(reason=7)
         while not self._abort:
             self.attack_loop_count += 1
             for ap_mac in possible_ap_mac_addrs:
