@@ -142,7 +142,7 @@ class Interceptor:
     
     def _generate_possible_ap_mac_addrs(self):
         possible_mac_addrs = list()
-        original_addr = self.target_ssid.split(':')
+        original_addr = self._active_aps[self.target_ssid]["mac_addr"].split(':')
         ap_mac_postf = original_addr[-1]
         ap_mac_postf = int(ap_mac_postf, 16)
         for i in range(-self._mac_range, self._mac_range):
