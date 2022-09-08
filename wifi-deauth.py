@@ -213,5 +213,5 @@ if __name__ == "__main__":
     pargs = vars(parser.parse_args())
 
     invalidate_print()  # after arg parsing
-    attacker = Interceptor(*pargs)
+    attacker = Interceptor(net_iface=pargs.net_iface)
     attacker.run()
