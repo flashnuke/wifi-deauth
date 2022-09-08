@@ -62,9 +62,10 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR:
                     return
+                if "ef:12" in ap_mac:
+                    pkt.show()
                 if ssid not in self._active_aps:
-                    if "ef:12" in ap_mac:
-                        pkt.show()
+
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     print(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 c_mac = pkt.addr1
