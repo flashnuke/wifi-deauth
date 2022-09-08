@@ -165,6 +165,7 @@ class Interceptor:
             t.start()
 
         printf(DELIM)
+        printf(DELIM)
         try:
             while not self._abort:
                 printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
