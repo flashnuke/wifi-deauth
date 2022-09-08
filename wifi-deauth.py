@@ -102,6 +102,7 @@ class Interceptor:
         target_map = dict()
         printf(DELIM)
         for ssid, ssid_stats in self._active_aps.items():
+            ctr += 1
             target_map[ctr] = ssid
             printf(f"[{ctr}] -> {self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'])}")
         if not target_map:
@@ -110,7 +111,7 @@ class Interceptor:
             exit(0)
 
         chosen = -1
-        while chosen not in target_map:
+        while chosen not in target_map.keys():
             chosen = int(input(f"[*] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}"))
 
         return target_map[chosen]
