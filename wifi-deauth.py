@@ -231,6 +231,6 @@ if __name__ == "__main__":
                         dest="net_iface", metavar="network_interface", required=True)
     pargs = parser.parse_args()
 
-    invalidate_printf()  # after arg parsing
+    invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface)
     attacker.run()
