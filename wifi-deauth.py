@@ -67,8 +67,6 @@ class Interceptor:
                     c_mac = str(pkt.addr1)
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                         # todo check type of pkt instead
-                        printf(c_mac)
-                        printf(str(self._active_aps[ssid]["clients"]))
                         self._active_aps[ssid]["clients"].append(c_mac)
                     self._current_channel_aps.add(ssid)
         except:
@@ -104,7 +102,7 @@ class Interceptor:
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
-            pref = f"[{ctr}] -> "
+            pref = f"[{ctr}] "
             printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
@@ -119,7 +117,7 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad, ' ')}{str(ch).ljust(self._ssid_str_pad // 2 - preflen, ' ')}{mcaddr}"
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
@@ -174,9 +172,10 @@ class Interceptor:
                 printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
                 printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[*] Amount clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                printf(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
                 sleep(self._print_res_intv)
-                clear_line(6)
+                clear_line(7)
         except KeyboardInterrupt:
             print(f"\n{DELIM}")
             print(f"[!] User asked to stop, quitting...")
