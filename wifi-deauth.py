@@ -58,17 +58,18 @@ class Interceptor:
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Elt):
-                ssid = pkt[Dot11Elt].info.decode()
-                if ssid:
-                    ap_mac = pkt.addr3
-                    if ssid not in self._active_aps:
-                        self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
-                        printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                    c_mac = pkt.addr1
-                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        # todo check type of pkt instead
-                        self._active_aps[ssid]["clients"].append(c_mac)
-                    self._current_channel_aps.add(ssid)
+                ap_mac = pkt.addr3
+                ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
+                if ap_mac == self._BROADCAST_MACADDR:
+                    return
+                if ssid not in self._active_aps:
+                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
+                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+                c_mac = pkt.addr1
+                if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
+                    # todo check type of pkt instead
+                    self._active_aps[ssid]["clients"].append(c_mac)
+                self._current_channel_aps.add(ssid)
         except:
             pass
 
@@ -122,7 +123,7 @@ class Interceptor:
     def _clients_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Elt):
-                ssid = pkt[Dot11Elt].info.decode()
+                ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
