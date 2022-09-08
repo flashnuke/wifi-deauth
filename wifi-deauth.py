@@ -208,8 +208,8 @@ if __name__ == "__main__":
 
     # arguments = define_args()
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
-    parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
-                        metavar="network_interface", required=True)
+    parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")', action='store',
+                        dest="net_iface", metavar="network_interface", required=True)
     pargs = vars(parser.parse_args())
 
     invalidate_print()  # after arg parsing
