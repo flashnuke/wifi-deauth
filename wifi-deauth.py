@@ -63,7 +63,7 @@ class Interceptor:
                 if ap_mac == self._BROADCAST_MACADDR:
                     return
                 if ssid not in self._active_aps:
-                    if "Shpitz" in ssid:
+                    if "ef:12" in ap_mac:
                         pkt.show()
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
