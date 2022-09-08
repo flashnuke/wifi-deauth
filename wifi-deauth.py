@@ -57,7 +57,7 @@ class Interceptor:
 
     def _ap_sniff_cb(self, pkt):
         try:
-            if pkt.haslayer(Dot11Elt):
+            if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = pkt.addr3
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR:
@@ -127,6 +127,8 @@ class Interceptor:
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
+                        printf(c_mac + " c vs ap" + self._active_aps[self.target_ssid]["mac_addr"])
+                        printf(str(self._active_aps[self.target_ssid]["clients"]))
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
