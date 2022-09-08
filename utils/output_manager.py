@@ -20,4 +20,4 @@ def printf(text):
 
 
 def clear_line(lines=1):
-    printf(_CLEAR_LINE)
+    printf(lines * _CLEAR_LINE)

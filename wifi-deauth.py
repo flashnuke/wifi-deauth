@@ -63,9 +63,7 @@ class Interceptor:
                     ap_mac = pkt.addr3
                     if ssid not in self._active_aps:
                         self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
-                        clear_line()
                         printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                        self._print_channel()
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                         # todo check type of pkt instead
@@ -86,25 +84,19 @@ class Interceptor:
             return
 
     def _start_initial_ap_scan(self):
-        printf("[*] Starting AP scan, press <CTRL+C> to end...")
+        printf("[*] Starting AP scan, please wait... (11 channels total)")
 
-        while not self._abort:
-            try:
-                self._scan_channels_for_aps()
+        self._scan_channels_for_aps()
 
-                to_remove = list()
-                for ssid in self._active_aps.keys():
-                    if ssid not in self._current_channel_aps:
-                        self._active_aps[ssid]["miss_counter"] += 1
-                    if self._active_aps[ssid]["miss_counter"] >= self._max_miss_counter:
-                        to_remove.append(ssid)
-                for ssid_to_remove in to_remove:
-                    del self._active_aps[ssid_to_remove]
-                self._current_channel_aps.clear()
-
-                sleep(self._scan_intv)
-            except KeyboardInterrupt as exc:
-                break
+        to_remove = list()
+        for ssid in self._active_aps.keys():
+            if ssid not in self._current_channel_aps:
+                self._active_aps[ssid]["miss_counter"] += 1
+            if self._active_aps[ssid]["miss_counter"] >= self._max_miss_counter:
+                to_remove.append(ssid)
+        for ssid_to_remove in to_remove:
+            del self._active_aps[ssid_to_remove]
+        self._current_channel_aps.clear()
 
         ctr = 0
         target_map = dict()
