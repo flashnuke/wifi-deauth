@@ -173,7 +173,7 @@ class Interceptor:
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
                 printf(f"[*] Amount clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
                 sleep(self._print_res_intv)
-                clear_line(5)
+                clear_line(6)
         except KeyboardInterrupt:
             print(f"\n{DELIM}")
             print(f"[!] User asked to stop, quitting...")
