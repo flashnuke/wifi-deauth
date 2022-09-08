@@ -65,7 +65,9 @@ class Interceptor:
                         self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                         printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                     c_mac = pkt.addr1
+                    printf(c_mac)
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
+                        printf(str(self._active_aps[ssid]["clients"]))
                         # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
                     self._current_channel_aps.add(ssid)
