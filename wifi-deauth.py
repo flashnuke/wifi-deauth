@@ -52,6 +52,7 @@ class Interceptor:
 
     def _set_channel(self, ch_num: int):
         os.system("iw dev %s set channel %d" % (self.interface, ch_num))
+        # TODO for x in sudo iwlist wlan0 channel
         self._current_channel_num = ch_num
 
     def _printf_channel(self):
