@@ -106,7 +106,7 @@ class Interceptor:
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
-            pref = f"[{str(ctr).ljust(3, ' ')}] "
+            pref = f"[{str(ctr).rjust(3, ' ')}] "
             printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
@@ -140,7 +140,7 @@ class Interceptor:
 
     def _packet_confirms_client(self, pkt):
         return (pkt.haslayer(Dot11AssoResp) and pkt[Dot11AssoResp].status == 0) or \
-               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0) or
+               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0)
 
     def _listen_for_clients(self):
         printf(f"[*] Setting up a listener for new clients...")
@@ -212,7 +212,7 @@ class Interceptor:
                 printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
                 printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
-                printf(f"[*] Current time {str(int(time.time())).rjust(80 - 17, ' ')}")
+                printf(f"[*] Elapsed {str(int(time.perf_counter())).rjust(80 - 12, ' ')}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
