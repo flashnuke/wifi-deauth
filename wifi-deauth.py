@@ -69,7 +69,7 @@ class Interceptor:
 
     def _get_channels(self):
         printf("ASdasd")
-        channels = os.popen(f'iwlist {self.interface} channel').read()
+        channels = os.popen(f'iwlist {self.interface} channel').readlines()
         printf("casdsad")
         for ch in channels:
             printf("asd")
