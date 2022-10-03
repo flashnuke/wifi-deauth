@@ -51,12 +51,13 @@ class Interceptor:
         else:
             printf("[*] Skipping monitor mode setup...")
 
+        self._get_channels()
+
     def _enable_monitor_mode(self):
         for cmd in [f"sudo ip link set {self.interface} down",
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
             printf(f"[*] Running command > '{cmd}'")
-            res = os.system(cmd)
             if os.system(cmd):
                 return False
         return True
@@ -65,6 +66,12 @@ class Interceptor:
         os.system("iw dev %s set channel %d" % (self.interface, ch_num))
         # TODO for x in sudo iwlist wlan0 channel
         self._current_channel_num = ch_num
+
+    def _get_channels(self):
+        channels = os.popen(f'iwlist {self.interface} channel').read()
+        for ch in channels:
+            print("asd")
+            print(ch)
 
     def _printf_channel(self):
         printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
@@ -132,7 +139,7 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
@@ -201,13 +208,14 @@ class Interceptor:
         printf(DELIM)
         printf("")
         try:
+            start = self.get_time()
             while not self._abort:
                 printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
                 printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
                 printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
                 printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
-                printf(f"[*] Elapsed {str(int(time.perf_counter())).rjust(80 - 12, ' ')}")
+                printf(f"[*] Elapsed sec {str(self.get_time() - start).rjust(80 - 16, ' ')}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
@@ -222,6 +230,10 @@ class Interceptor:
             "clients": list(),
             "miss_counter": 0  # when this reaches self.max_miss_cnt, remove
         }
+
+    @staticmethod
+    def get_time():
+        return int(time.time())
 
 
 if __name__ == "__main__":
