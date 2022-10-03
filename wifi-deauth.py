@@ -68,7 +68,9 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _get_channels(self):
+        print("ASdasd")
         channels = os.popen(f'iwlist {self.interface} channel').read()
+        print("casdsad")
         for ch in channels:
             print("asd")
             print(ch)
