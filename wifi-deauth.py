@@ -22,7 +22,7 @@ BANNER = """
 
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
-    _CH_RANGE = range(1, 12)
+    _CH_RANGE = range(1, 12)  # TODO remove
 
     def __init__(self, net_iface, skip_monitor_mode_setup, *args, **kwargs):
         self.interface = net_iface
@@ -68,12 +68,12 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _get_channels(self):
-        print("ASdasd")
+        printf("ASdasd")
         channels = os.popen(f'iwlist {self.interface} channel').read()
-        print("casdsad")
+        printf("casdsad")
         for ch in channels:
-            print("asd")
-            print(ch)
+            printf("asd")
+            printf(ch)
 
     def _printf_channel(self):
         printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
