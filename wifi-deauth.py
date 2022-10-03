@@ -72,7 +72,7 @@ class Interceptor:
             if 'Channel' in channel:
                 x = channel.split('Channel')
                 print(x)
-                y = x.split(':')
+                y = x[0].split(':')
                 print(y)
         return [int(channel.split('Channel')[1].split(':')[0].strip())
                 for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel]
