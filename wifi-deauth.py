@@ -22,7 +22,6 @@ BANNER = """
 
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
-    _CH_RANGE = range(1, 12)  # TODO remove
 
     def __init__(self, net_iface, skip_monitor_mode_setup, *args, **kwargs):
         self.interface = net_iface
@@ -51,7 +50,7 @@ class Interceptor:
         else:
             printf("[*] Skipping monitor mode setup...")
 
-        self._get_channels()
+        self._channel_range = self._get_channels()
 
     def _enable_monitor_mode(self):
         for cmd in [f"sudo ip link set {self.interface} down",
@@ -69,11 +68,8 @@ class Interceptor:
 
     def _get_channels(self):
         printf("ASdasd")
-        channels = os.popen(f'iwlist {self.interface} channel').readlines()
-        printf("casdsad")
-        for ch in channels:
-            printf("asd")
-            printf(ch)
+        return [int(channel.split('Channel')[1].split(':')[0].strip())
+                for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel]
 
     def _printf_channel(self):
         printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
@@ -98,7 +94,7 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            for ch in self._CH_RANGE:
+            for ch in self._channel_range:
                 self._set_channel(ch)
                 self._printf_channel()
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
