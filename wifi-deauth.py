@@ -56,7 +56,8 @@ class Interceptor:
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
             printf(f"[*] Running command > '{cmd}'")
-            if not os.system(cmd):
+            res = os.system(cmd)
+            if os.system(cmd):
                 return False
         return True
 
@@ -242,11 +243,11 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
                         action='store', dest="net_iface", metavar="network_interface", required=True)
     parser.add_argument('-sm', '--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
-                        dest="net_iface", default=False, metavar="skip_monitormode", required=False)
+                        default=False, dest="skip_monitormode", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
-    attacker = Interceptor(net_iface=pargs.net_iface, skip_monitor_mode_setup=pargs.skip_monitor_mode_setup)
+    attacker = Interceptor(net_iface=pargs.net_iface, skip_monitor_mode_setup=pargs.skip_monitormode)
     attacker.run()
 
 # TODO
