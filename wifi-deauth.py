@@ -79,9 +79,10 @@ class Interceptor:
                 if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
                     return
                 if ssid not in self._active_aps:
+                    self._duplicates[ssid] = 0
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                elif self._active_aps[ssid]["channel"] != self._current_channel_num:
+                elif self._active_aps[ssid + self._duplicates[ssid] * ' ']["channel"] != self._current_channel_num:
                     self._duplicates[ssid] += 1
                     mod_ssid = ssid + self._duplicates[ssid] * ' '
                     self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
