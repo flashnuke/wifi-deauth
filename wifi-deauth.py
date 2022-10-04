@@ -76,7 +76,7 @@ class Interceptor:
                 ch_num, ch_freq = ch_data.split(':')
                 ch_num = int(ch_num.strip())
                 ch_freq = ch_freq.strip()
-                ch_freq = 2.4 if ch_freq.startswith(2) else 5  # note only supports 2.4 and 5 atm
+                ch_freq = 2.4 if ch_freq.startswith('2') else 5  # note only supports 2.4 and 5 atm
                 channels.append(tuple([ch_num, ch_freq]))
 
         return channels
