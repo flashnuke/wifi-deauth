@@ -70,9 +70,6 @@ class Interceptor:
         return [int(channel.split('Channel')[1].split(':')[0].strip())
                 for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel and 'Current' not in channel]
 
-    def _printf_channel(self):
-        printf(f"[*] Scanning for APs, current channel -> {self._current_channel_num}")
-
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
@@ -93,9 +90,9 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            for ch in self._channel_range:
+            for idx, ch in enumerate(self._channel_range):
                 self._set_channel(ch)
-                self._printf_channel()
+                printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
@@ -265,3 +262,4 @@ if __name__ == "__main__":
 # todo broadcast ??
 # todo reason=7
 # todo type=8, subtype=12,
+# todo kill network manager optional
