@@ -40,6 +40,7 @@ class Interceptor:
 
         self.target_ssid = str()
         self._active_aps = defaultdict(dict)
+        self._duplicates = defaultdict(int)
 
         if not skip_monitor_mode_setup:
             printf("[*] Setting up monitor mode...")
@@ -75,11 +76,15 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                ssid = f"{ssid}{str(self._current_channel_num).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}"
                 if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
                     return
-                if ssid not in self._active_aps or self._active_aps[ssid]['channel'] != self._current_channel_num:  # todo dont overwrite
+                if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
+                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+                elif self._active_aps[ssid]["channel"] != self._current_channel_num:
+                    self._duplicates[ssid] += 1
+                    mod_ssid = ssid + self._duplicates[ssid] * ' '
+                    self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 if pkt.haslayer(Dot11ProbeResp):
                     c_mac = str(pkt.addr1)
@@ -120,7 +125,7 @@ class Interceptor:
             ctr += 1
             target_map[ctr] = ssid
             pref = f"[{str(ctr).rjust(3, ' ')}] "
-            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['mac_addr'], len(pref))}")
+            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
             self._abort = True
@@ -133,8 +138,8 @@ class Interceptor:
 
         return target_map[chosen]
 
-    def _generate_ssid_str(self, ssid, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{mcaddr}"
+    def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
@@ -196,6 +201,7 @@ class Interceptor:
         printf(f"[*] Attacking target {self.target_ssid}")
         printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
         self._set_channel(self._active_aps[self.target_ssid]["channel"])
+        self.target_ssid = self.target_ssid.strip()  # strip() is important for dupes only after setting the channel
 
         for action in [self._run_deauther, self._listen_for_clients]:
             t = Thread(target=action, args=tuple(), daemon=True)
