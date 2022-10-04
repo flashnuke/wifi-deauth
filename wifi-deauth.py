@@ -82,7 +82,8 @@ class Interceptor:
                     self._duplicates[ssid] = 0
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                elif self._active_aps[ssid + self._duplicates[ssid] * ' ']["mac_addr"] != ap_mac:
+                elif self._active_aps[ssid + self._duplicates[ssid] * ' ']["mac_addr"] != ap_mac and \
+                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["channel"] != self._current_channel_num:
                     self._duplicates[ssid] += 1
                     mod_ssid = ssid + self._duplicates[ssid] * ' '
                     self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
