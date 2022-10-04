@@ -75,6 +75,7 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
+                ssid = f"{ssid}{str(self._current_channel_num).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}"
                 if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
                     return
                 if ssid not in self._active_aps or self._active_aps[ssid]['channel'] != self._current_channel_num:  # todo dont overwrite
@@ -119,7 +120,7 @@ class Interceptor:
             ctr += 1
             target_map[ctr] = ssid
             pref = f"[{str(ctr).rjust(3, ' ')}] "
-            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
             self._abort = True
@@ -132,8 +133,8 @@ class Interceptor:
 
         return target_map[chosen]
 
-    def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
+    def _generate_ssid_str(self, ssid, mcaddr, preflen):
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
