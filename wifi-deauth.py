@@ -62,14 +62,24 @@ class Interceptor:
                 return False
         return True
 
-    def _set_channel(self, ch_num: int):
-        os.system("iw dev %s set channel %d" % (self.interface, ch_num))
+    def _set_channel(self, ch_data: Tuple[int, int]):
+        os.system("iw dev %s set channel %d" % (self.interface, ch_data[0]))
         # TODO for x in sudo iwlist wlan0 channel
-        self._current_channel_num = ch_num
+        self._current_channel_num = ch_data[0]
+        self._current_channel_freq = ch_data[1]
 
     def _get_channels(self):
-        return [int(channel.split('Channel')[1].split(':')[0].strip())
-                for channel in os.popen(f'iwlist {self.interface} channel').readlines() if 'Channel' in channel and 'Current' not in channel]
+        channels = list()
+        for channel in os.popen(f'iwlist {self.interface} channel').readlines():
+            if 'Channel' in channel and 'Current' not in channel:
+                ch_data = channel.split('Channel')[1]
+                ch_num, ch_freq = ch_data.split(':')
+                ch_num = int(ch_num.strip())
+                ch_freq = ch_freq.strip()
+                ch_freq = 2.4 if ch_freq.startswith(2) else 5  # note only supports 2.4 and 5 atm
+                channels.append(tuple([ch_num, ch_freq]))
+
+        return channels
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -80,13 +90,16 @@ class Interceptor:
                     return
                 if ssid not in self._active_aps:
                     self._duplicates[ssid] = 0
-                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
+                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num,
+                                                                self._current_channel_freq)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 elif self._active_aps[ssid + self._duplicates[ssid] * ' ']["mac_addr"] != ap_mac and \
-                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["channel"] != self._current_channel_num:
+                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["channel"] != self._current_channel_num and \
+                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["freq"] != self._current_channel_freq:
                     self._duplicates[ssid] += 1
                     mod_ssid = ssid + self._duplicates[ssid] * ' '
-                    self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
+                    self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num,
+                                                                    self._current_channel_freq)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 if pkt.haslayer(Dot11ProbeResp):
                     c_mac = str(pkt.addr1)
@@ -98,15 +111,15 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            for idx, ch in enumerate(self._channel_range):
-                self._set_channel(ch)
+            for idx, ch_data in enumerate(self._channel_range):
+                self._set_channel(ch_data)
                 printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
 
     def _start_initial_ap_scan(self):
-        printf("[*] Starting AP scan, please wait... (11 channels total)")
+        printf(f"[*] Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
 
@@ -227,9 +240,10 @@ class Interceptor:
             printf(f"[!] User asked to stop, quitting...")
 
     @staticmethod
-    def _init_ap_dict(mac_addr: str, ch: int) -> dict:
+    def _init_ap_dict(mac_addr: str, ch: int, freq: int) -> dict:
         return {
             "channel": ch,
+            "freq": freq,
             "mac_addr": mac_addr,
             "clients": list(),
             "miss_counter": 0  # when this reaches self.max_miss_cnt, remove
