@@ -56,7 +56,7 @@ class Interceptor:
         for cmd in [f"sudo ip link set {self.interface} down",
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
-            printf(f"[*] Running command > '{cmd}'")
+            printf(f"[>] Running command -> '{cmd}'")
             if os.system(cmd):
                 return False
         return True
@@ -77,14 +77,14 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
                     return
-                if ssid not in self._active_aps:
+                if ssid not in self._active_aps or self._active_aps[ssid]['channel'] != self._current_channel_num:  # todo dont overwrite
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
                 if pkt.haslayer(Dot11ProbeResp):
                     c_mac = str(pkt.addr1)
                     if c_mac not in self._active_aps[ssid]["clients"]:  # TODO check broadcast
                         self._active_aps[ssid]["clients"].append(c_mac)
-                self._current_channel_aps.add(ssid)
+                self._current_channel_aps.add(ssid)  # todo wtf is this
         except:
             pass
 
