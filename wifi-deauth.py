@@ -62,11 +62,11 @@ class Interceptor:
                 return False
         return True
 
-    def _set_channel(self, ch_data: Tuple[int, int]):
+    def _set_channel(self, ch_num, ch_freq):
         os.system("iw dev %s set channel %d" % (self.interface, ch_data[0]))
         # TODO for x in sudo iwlist wlan0 channel
-        self._current_channel_num = ch_data[0]
-        self._current_channel_freq = ch_data[1]
+        self._current_channel_num = ch_num
+        self._current_channel_freq = ch_freq
 
     def _get_channels(self):
         channels = list()
@@ -112,7 +112,7 @@ class Interceptor:
     def _scan_channels_for_aps(self):
         try:
             for idx, ch_data in enumerate(self._channel_range):
-                self._set_channel(ch_data)
+                self._set_channel(*ch_data)
                 printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
