@@ -215,7 +215,7 @@ class Interceptor:
         self.target_ssid = self._start_initial_ap_scan()
         printf(f"[*] Attacking target {self.target_ssid}")
         printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
-        self._set_channel(self._active_aps[self.target_ssid]["channel"])
+        self._set_channel(self._active_aps[self.target_ssid]["channel"], self._active_aps[self.target_ssid]["freq"])
         self.target_ssid = self.target_ssid.strip()  # strip() is important for dupes only after setting the channel
 
         for action in [self._run_deauther, self._listen_for_clients]:
