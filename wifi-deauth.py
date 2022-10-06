@@ -99,10 +99,10 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            printf("")
+            printf("\n")
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                clear_line(1)
+                clear_line(2)
                 printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
