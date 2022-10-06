@@ -1,10 +1,10 @@
 # Wifi-Deauth
-A wifi deauth attack that disconnects all devices from a targeted wifi Access Point </br>
-No need to know the password or be connected to the access point.
+A wifi deauth attack that disconnects all devices from the target wifi access point </br>
+There is no need to be connected or know the password.
 
 ## How it works
-This program iterates over all possible channels, and by sniffing `802.11` packets it determines which Access Points are available. </br>
-After the attacker chooses a target Access Point to attack, the program:
+This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
+After the attacker chooses a target access point to attack, the program:
 1. Continously sends spoofed deauthentication packets using broadcast mac address as the destination
 2. Starts sniffing for clients that are connected to the AP by filtering for certain 802.11 packet frames and sending spoofed deauthentication packets to those clients as well
 
