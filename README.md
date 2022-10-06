@@ -14,6 +14,7 @@ python3 wifi-deauth.py -i <iface>
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
 * Pass `--kill` arg in order to kill NetworkManager service which might interfere with the 
+* The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 * Pass `--skip-monitormode` if you want to enable monitor mode manually (otherwise the program does it automatically)
 
 ### Misc notes
@@ -21,7 +22,7 @@ python3 wifi-deauth.py -i <iface>
 * Should work for 5Ghz also, assuming the network interface supports it
 * Beware that some access points have protections against this kind of attack and therefore it might not work on them
 
-## Requirements
+### Requirements
 * Linux OS
 * A network adapter that supports monitor mode and packet injection
 * Scapy library (listed in `requirements.txt`)
