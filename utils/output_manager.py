@@ -5,13 +5,11 @@ _DEVNULL = open(os.devnull, "w")
 _ORIG_STDOUT = sys.stdout
 _CLEAR_LINE = "\x1b[1A\x1b[2K"
 DELIM = 80 * "="
-BANNER = """
- __      __ __  _____ __         _________                          __   __     
-/  \    /  \__|/ ____\__|        \    __  \  _____ ______   __ ___/  |_|  |__  
-\   \/\/   /  \   __\|  |  ______ |  |  \  \/ ___ \\\  __ \ |  |  \   __|  |  \ 
- \        /|  ||  |  |  | /_____/ |  |__/  /\  ___/| |__\ \|  |  /|  | |   Y  \\
-  \__/\__/ |__||__|  |__|        /________/  \____/|______/ ____/ |__| |___|__/ 
-"""
+
+_TRESET = '\033[0m'
+_TBOLD = '\033[1m'
+_TRED = '\033[31m'
+
 
 def invalidate_print():
     global _DEVNULL
@@ -27,3 +25,11 @@ def printf(text):
 
 def clear_line(lines=1):
     printf(lines * _CLEAR_LINE)
+
+BANNER = f"""
+{_TBOLD}{_TRED} __      __ {_TRESET}__  _____ __         {_TBOLD}{_TRED}_________{_TRESET}                          __   __     
+{_TBOLD}{_TRED}/  \    /  \\{_TRESET}__|/ ____\__|        {_TBOLD}{_TRED}\    __  \{_TRESET}  _____ ______   __ ___/  |_|  |__  
+{_TBOLD}{_TRED}\   \/\/   /{_TRESET}  \   __\|  |  ______ {_TBOLD}{_TRED}|  |  \  \{_TRESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
+{_TBOLD}{_TRED} \        /{_TRESET}|  ||  |  |  | /_____/ {_TBOLD}{_TRED}|  |__/  /{_TRESET}\  ___/| |__\ \|  |  /|  | |   Y  \\
+{_TBOLD}{_TRED}  \__/\__/ {_TRESET}|__||__|  |__|        {_TBOLD}{_TRED}/________/{_TRESET}  \____/|______/ ____/ |__| |___|__/ 
+"""
