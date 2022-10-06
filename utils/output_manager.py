@@ -28,8 +28,8 @@ def clear_line(lines=1):
 
 BANNER = f"""
 {_TBOLD}{_TRED} __      __ {_TRESET}__  _____ __         {_TBOLD}{_TRED}_________{_TRESET}                          __   __     
-{_TBOLD}{_TRED}/  \    /  \\{_TRESET}__|/ ____\__|        {_TBOLD}{_TRED}\    __  \{_TRESET}  _____ ______   __ ___/  |_|  |__  
-{_TBOLD}{_TRED}\   \/\/   /{_TRESET}  \   __\|  |  ______ {_TBOLD}{_TRED}|  |  \  \{_TRESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
+{_TBOLD}{_TRED}/  \    /  \\{_TRESET}__|/ ____\__|        {_TBOLD}{_TRED}\    __  \\{_TRESET}  _____ ______   __ ___/  |_|  |__  
+{_TBOLD}{_TRED}\   \/\/   /{_TRESET}  \   __\|  |  ______ {_TBOLD}{_TRED}|  |  \  \\{_TRESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
 {_TBOLD}{_TRED} \        /{_TRESET}|  ||  |  |  | /_____/ {_TBOLD}{_TRED}|  |__/  /{_TRESET}\  ___/| |__\ \|  |  /|  | |   Y  \\
-{_TBOLD}{_TRED}  \__/\__/ {_TRESET}|__||__|  |__|        {_TBOLD}{_TRED}/________/{_TRESET}  \____/|______/ ____/ |__| |___|__/ 
+{_TBOLD}{_TRED}  \__/\__/ {_TRESET}|__||__|  |__|        {_TBOLD}{_TRED} |_______/{_TRESET}  \____/|______/ ____/ |__| |___|__/ 
 """
