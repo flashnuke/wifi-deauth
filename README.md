@@ -1,5 +1,6 @@
 # Wifi-Deauth
-A wifi deauth attack that disconnects devices from a certain wifi AP from outside the network using packet injection
+A wifi deauth attack that disconnects all devices from a targeted wifi Access Point </br>
+No need to know the password or be connected to the access point.
 
 ## How it works
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which Access Points are available. </br>
