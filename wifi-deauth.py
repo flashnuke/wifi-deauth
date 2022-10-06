@@ -99,8 +99,10 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
+            printf("")
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
+                clear_line(1)
                 printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
@@ -204,7 +206,7 @@ class Interceptor:
                 printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
                 printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[*] Num of clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 18, ' ')}")
+                printf(f"[*] Confirmed clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 21, ' ')}")
                 printf(f"[*] Elapsed sec {str(self.get_time() - start).rjust(80 - 16, ' ')}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
