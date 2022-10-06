@@ -13,7 +13,7 @@ python3 wifi-deauth.py -i <iface>
 ```
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
-* Pass `--kill` arg in order to kill NetworkManager service which might interfere with the 
+* Pass `--kill` (or run `sudo systemctl stop NetworkManager`) in order to kill NetworkManager service which might interfere with the attack
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 * Pass `--skip-monitormode` if you want to enable monitor mode manually (otherwise the program does it automatically)
 

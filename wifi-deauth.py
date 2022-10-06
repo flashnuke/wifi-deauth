@@ -229,7 +229,7 @@ if __name__ == "__main__":
     printf(f"\n{BANNER}\n"
            f"Make sure of the following:\n"
            f"1. You are running as sudo\n"
-           f"2. You kill NetworkManager (run 'sudo systemctl stop NetworkManager' or pass --kill)\n"
+           f"2. You kill NetworkManager (manually or by passing --kill)\n"
            f"3. Your wireless adapter supports monitor mode (refer to docs)\n\n"
            f"Written by @flashnuke")
     printf(DELIM)
