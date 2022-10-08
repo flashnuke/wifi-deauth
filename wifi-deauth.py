@@ -153,7 +153,28 @@ class Interceptor:
                 printf(ap_mac)
                 printf(ap_mac)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
+                printf(ssid == self.target_ssid)
                 if ssid == self.target_ssid:
+                    printf("got in")
+                    printf("got in")
+                    printf("got in")
+                    printf("got in")
+                    printf("got in")
                     c_mac = pkt.addr1
                     if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
                         self._active_aps[ssid]["clients"].append(c_mac)
