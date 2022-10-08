@@ -94,6 +94,8 @@ class Interceptor:
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
                     # printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+            else:
+                self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
             pass
 
