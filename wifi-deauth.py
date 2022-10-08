@@ -151,7 +151,8 @@ class Interceptor:
     @staticmethod
     def _packet_confirms_client(pkt):
         return (pkt.haslayer(Dot11AssoResp) and pkt[Dot11AssoResp].status == 0) or \
-               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0)
+               (pkt.haslayer(Dot11ReassoResp) and pkt[Dot11ReassoResp].status == 0) or \
+               pkt.haslayer(Dot11QoS)
 
     def _listen_for_clients(self):
         printf(f"[*] Setting up a listener for new clients...")
