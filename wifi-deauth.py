@@ -142,6 +142,16 @@ class Interceptor:
         try:
             if self._packet_confirms_client(pkt):
                 ap_mac = str(pkt.addr3)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
+                printf(ap_mac)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ssid == self.target_ssid:
                     c_mac = pkt.addr1
