@@ -89,7 +89,7 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
-                if ap_mac == self._BROADCAST_MACADDR:
+                if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
                 if ssid not in self._active_aps:
                     self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
