@@ -36,7 +36,6 @@ class Interceptor:
         self._ssid_str_pad = 42  # total len 80
 
         self._abort = False
-        self._current_channel_num = None
         self._current_channel_aps = set()
 
         self.attack_loop_count = 0
@@ -76,7 +75,6 @@ class Interceptor:
 
     def _set_channel(self, ch_num):
         os.system(f"iw dev {self.interface} set channel {ch_num}")
-        self._current_channel_num = ch_num
 
     def _get_channels(self) -> List[int]:
         return [int(channel.split('Channel')[1].split(':')[0].strip())
@@ -90,10 +88,10 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                if ssid not in self._channel_range[self._current_channel_num]:
-                    self._channel_range[self._current_channel_num][ssid] = \
-                        self._init_ap_dict(ap_mac, self._current_channel_num)
-                    # printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
+                packet_ch = pkt[RadioTap].Channel
+                if ssid not in self._channel_range[packet_ch]:
+                    self._channel_range[packet_ch][ssid] = \
+                        self._init_ap_dict(ap_mac, packet_ch)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
@@ -105,7 +103,7 @@ class Interceptor:
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
                 clear_line(2)
-                printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
+                printf(f"[*] Scanning channel {ch_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
