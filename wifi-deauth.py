@@ -4,6 +4,7 @@ import argparse
 import pkg_resources
 import traceback
 import logging
+
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
 from scapy.all import *
@@ -36,7 +37,7 @@ class Interceptor:
         self._ssid_str_pad = 42  # total len 80
 
         self._abort = False
-        self._freq_to_ch_map = dict()
+        self._current_channel_num = None
         self._current_channel_aps = set()
 
         self.attack_loop_count = 0
@@ -76,17 +77,12 @@ class Interceptor:
 
     def _set_channel(self, ch_num):
         os.system(f"iw dev {self.interface} set channel {ch_num}")
+        self._current_channel_num = ch_num
 
     def _get_channels(self) -> List[int]:
-        channel_range = list()
-        for channel in os.popen(f'iwlist {self.interface} channel').readlines():
-            if 'Channel' in channel and 'Current' not in channel:
-                ch, freq = channel.split(':')
-                ch = int(ch.replace('Channel', '').strip())
-                freq = int(freq.replace('GHz', '').replace('.', '').strip())
-                self._freq_to_ch_map[freq] = ch
-                channel_range.append(ch)
-        return channel_range
+        return [int(channel.split('Channel')[1].split(':')[0].strip())
+                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
+                if 'Channel' in channel and 'Current' not in channel]
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -95,10 +91,9 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                packet_ch = self._freq_to_ch_map[pkt[RadioTap].Channel]
-                if ssid not in self._channel_range[packet_ch]:
-                    self._channel_range[packet_ch][ssid] = \
-                        self._init_ap_dict(ap_mac, packet_ch)
+                if ssid not in self._channel_range[self._current_channel_num]:
+                    self._channel_range[self._current_channel_num][ssid] = \
+                        self._init_ap_dict(ap_mac, self._current_channel_num)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
@@ -110,7 +105,7 @@ class Interceptor:
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
                 clear_line(2)
-                printf(f"[*] Scanning channel {ch_num} ({idx + 1} out of {len(self._channel_range)})")
+                printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
@@ -148,7 +143,7 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2 , ' ')}{mcaddr}"
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
@@ -170,7 +165,7 @@ class Interceptor:
     def _listen_for_clients(self):
         printf(f"[*] Setting up a listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
-    
+
     def _run_deauther(self):
         try:
             printf(f"[*] Starting de-auth loop...")
