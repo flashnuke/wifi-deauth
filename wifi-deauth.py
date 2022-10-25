@@ -36,6 +36,7 @@ class Interceptor:
         self._ssid_str_pad = 42  # total len 80
 
         self._abort = False
+        self._freq_to_ch_map = dict()
         self._current_channel_aps = set()
 
         self.attack_loop_count = 0
@@ -77,9 +78,15 @@ class Interceptor:
         os.system(f"iw dev {self.interface} set channel {ch_num}")
 
     def _get_channels(self) -> List[int]:
-        return [int(channel.split('Channel')[1].split(':')[0].strip())
-                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
-                if 'Channel' in channel and 'Current' not in channel]
+        channel_range = list()
+        for channel in os.popen(f'iwlist {self.interface} channel').readlines():
+            if 'Channel' in channel and 'Current' not in channel:
+                ch, freq = channel.split(':')
+                ch = int(ch.replace('Channel', '').strip())
+                freq = float(freq.replace('GHz', '').strip())
+                self._freq_to_ch_map[freq] = ch
+                channel_range.append(ch)
+        return channel_range
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -88,7 +95,7 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                packet_ch = pkt[RadioTap].Channel
+                packet_ch = self._freq_to_ch_map[pkt[RadioTap].Channel]
                 if ssid not in self._channel_range[packet_ch]:
                     self._channel_range[packet_ch][ssid] = \
                         self._init_ap_dict(ap_mac, packet_ch)
