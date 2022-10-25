@@ -118,6 +118,9 @@ class Interceptor:
         ctr = 0
         target_map = dict()
         printf(DELIM)
+        pref = f"[{str(ctr).rjust(3, ' ')}] "
+        printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
+
         for channel, all_channel_aps in self._channel_range.items():
             for ssid, ssid_stats in all_channel_aps.items():
                 if not ssid or not ssid_stats:
