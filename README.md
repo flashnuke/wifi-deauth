@@ -3,6 +3,9 @@
 A wifi deauth attack that disconnects all devices from the target wifi access point, without the need to be connected to the network.
 
 ## How it works
+***
+**IMPORTANT! </br> In some cases you see the same SSID on different channels. If one doesn't work (0 clients or no de-auth) try other channels.**
+***
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
 After the attacker chooses a target access point to attack, the program:
 1. Continously sends spoofed deauthentication packets using broadcast mac address as the destination
