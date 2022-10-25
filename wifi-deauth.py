@@ -116,7 +116,7 @@ class Interceptor:
         ctr = 0
         target_map = dict()
         printf(DELIM)
-        pref = ' ' * 5
+        pref = ' ' * 6
         printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
 
         for channel, all_channel_aps in self._channel_range.items():
