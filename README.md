@@ -20,7 +20,7 @@ python3 wifi-deauth.py -i <iface>
 
 ### Misc notes
 * Check `ifconfig` to find the interface nickname
-* Should work for 5Ghz also, assuming the network interface supports it
+* Works for 2.4GHhz and 5Ghz
 * Beware that some access points have protections against this kind of attack and therefore it might not work on them
 
 ### Requirements
