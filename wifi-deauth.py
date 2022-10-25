@@ -83,7 +83,7 @@ class Interceptor:
             if 'Channel' in channel and 'Current' not in channel:
                 ch, freq = channel.split(':')
                 ch = int(ch.replace('Channel', '').strip())
-                freq = float(freq.replace('GHz', '').strip())
+                freq = int(freq.replace('GHz', '').replace('.', '').strip())
                 self._freq_to_ch_map[freq] = ch
                 channel_range.append(ch)
         return channel_range
