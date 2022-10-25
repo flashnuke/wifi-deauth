@@ -119,6 +119,8 @@ class Interceptor:
         target_map = dict()
         printf(DELIM)
         for ssid, ssid_stats in self._active_aps.items():
+            if not ssid or not ssid_stats:
+                continue
             ctr += 1
             target_map[ctr] = ssid
             pref = f"[{str(ctr).rjust(3, ' ')}] "
