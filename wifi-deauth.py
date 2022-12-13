@@ -146,8 +146,7 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        ch_bw = f"{ch} ({5 if int(ch) > 14 else 2.4}GHz)" if ch != "Channel" else ch
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{ch_bw.ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:

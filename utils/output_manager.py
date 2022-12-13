@@ -39,7 +39,7 @@ def print_info(text):
 
 
 def print_input(text):
-    input(printf(f"[{BOLD}{GREEN}>>>{RESET}] {text} "))
+    return input(printf(f"[{BOLD}{GREEN}>>>{RESET}] {text} "))
 
 
 def print_cmd(text):
