@@ -7,7 +7,7 @@ A DoS attack that disconnects all devices from a target wifi network.
 
 **IMPORTANT**
 Channel overlapping should be eliminated by scanning only non-overlapping channels. </br>
-However, some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz
+However, some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
 
 ## How it works
 

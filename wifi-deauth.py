@@ -93,21 +93,28 @@ class Interceptor:
                         if 'Channel' in channel and 'Current' not in channel]
         return [ch for ch in all_channels if ch in Interceptor._NON_OVERLAPPING_CHANNELS or self._all_channels]
 
+    @staticmethod
+    def _freq_to_ch(freq):
+        base = 5000 if freq // 1000 == 5 else 2407
+        return (freq - base) // 5
+
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
+                pkt_freq = pkt[RadioTap].Channel
+                pkt_ch = self._freq_to_ch(pkt_freq)
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                if self._current_channel_num > 14:  # is 5GHz
+                if pkt_ch > 14:  # is 5GHz
                     if ssid not in self._all_5ghz_aps:
                         self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_5ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
+                    self._all_5ghz_aps[ssid]["all_channels"].append(pkt_ch)
                 else:
                     if ssid not in self._all_24ghz_aps:
                         self._all_24ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_24ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
+                    self._all_24ghz_aps[ssid]["all_channels"].append(pkt_ch)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
