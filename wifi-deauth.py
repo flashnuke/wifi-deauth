@@ -27,6 +27,10 @@ conf.verb = 0
 
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
+    _NON_OVERLAPPING_CHANNELS = {1, 6, 11,
+                                36, 40, 44, 48, 52, 56, 60, 64,
+                                100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144,
+                                149, 153, 157, 161, 165}
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, *args, **kwargs):
         self.interface = net_iface
@@ -80,9 +84,10 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _get_channels(self) -> List[int]:
-        return [int(channel.split('Channel')[1].split(':')[0].strip())
-                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
-                if 'Channel' in channel and 'Current' not in channel]
+        all_channels = [int(channel.split('Channel')[1].split(':')[0].strip())
+                        for channel in os.popen(f'iwlist {self.interface} channel').readlines()
+                        if 'Channel' in channel and 'Current' not in channel]
+        return [ch for ch in all_channels if ch in Interceptor._NON_OVERLAPPING_CHANNELS]
 
     def _ap_sniff_cb(self, pkt):
         try:
