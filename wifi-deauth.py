@@ -218,8 +218,8 @@ class Interceptor:
                 print_info(f"Channel{str(self.target_ssid['channel']).rjust(80 - 11, ' ')}")
                 print_info(f"MAC addr{self.target_ssid['mac_addr'].rjust(80 - 12, ' ')}")
                 print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
-                print_info(f"Confirmed clients{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}")
-                print_info(f"Elapsed sec {str(self.get_time() - start).rjust(80 - 16, ' ')}")
+                print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}{RESET}")
+                print_info(f"Elapsed sec {BOLD}{str(self.get_time() - start).rjust(80 - 16, ' ')}{RESET}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
