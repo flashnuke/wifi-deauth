@@ -255,7 +255,6 @@ if __name__ == "__main__":
     with open("requirements.txt", "r") as reqs:
         pkg_resources.require(reqs.readlines())
 
-    # arguments = define_args()
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
                         action='store', dest="net_iface", metavar="network_interface", required=True)
