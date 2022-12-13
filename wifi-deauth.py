@@ -244,7 +244,7 @@ class Interceptor:
 if __name__ == "__main__":
     printf(f"\n{BANNER}\n"
            f"Make sure of the following:\n"
-           f"1. You are running as {BOLD}sudo{RESET}\n"
+           f"1. You are running as {BOLD}root{RESET}\n"
            f"2. You kill NetworkManager (manually or by passing {BOLD}--kill{RESET})\n"
            f"3. Your wireless adapter supports {BOLD}monitor mode{RESET} (refer to docs)\n\n"
            f"Written by {BOLD}@flashnuke{RESET}")
