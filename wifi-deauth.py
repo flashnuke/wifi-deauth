@@ -28,7 +28,7 @@ conf.verb = 0
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
     _NON_OVERLAPPING_CHANNELS = {1, 6, 11,  # 2.4GHz
-                                 38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159}  # 5GHz
+                                 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157}  # 5GHz
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, all_channels, *args, **kwargs):
         self.interface = net_iface
@@ -147,7 +147,8 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
+        ch_bw = f"{ch} ({5 if int(ch) > 14 else 2.4}GHz)" if ch != "Channel" else ch
+        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{ch_bw.ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
