@@ -26,6 +26,7 @@ python3 wifi-deauth.py -i <iface>
 * Pass `--kill` (or run `sudo systemctl stop NetworkManager`) in order to kill NetworkManager service which might interfere with the attack
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 * Pass `--skip-monitormode` if you want to enable monitor mode manually (otherwise the program does it automatically)
+* During the channel scanning, some channels are omitted to avoid overlapping.<br> If a BSSID is missing, you can pass `-a` to scan all channels
 
 ### Misc notes
 * Check `ifconfig` to find the interface nickname

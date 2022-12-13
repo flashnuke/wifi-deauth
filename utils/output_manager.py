@@ -6,9 +6,12 @@ _ORIG_STDOUT = sys.stdout
 _CLEAR_LINE = "\x1b[1A\x1b[2K"
 DELIM = 80 * "="
 
-_TRESET = '\033[0m'
-_TBOLD = '\033[1m'
-_TRED = '\033[31m'
+RESET = '\033[0m'
+BOLD = '\033[1m'
+RED = '\033[31m'
+GREEN = '\033[32m'
+BLUE = '\033[34m'
+PURPLE = '\033[35m'
 
 
 def invalidate_print():
@@ -16,20 +19,42 @@ def invalidate_print():
     sys.stdout = _DEVNULL
 
 
-def printf(text):
+def restore_print():
+    global _ORIG_STDOUT
+    sys.stdout = _ORIG_STDOUT
+
+
+def printf(text, end="\n"):
     global _ORIG_STDOUT, _DEVNULL
     sys.stdout = _ORIG_STDOUT
-    print(text)
+    print(text, end=end)
     sys.stdout = _DEVNULL
 
 
 def clear_line(lines=1):
     printf(lines * _CLEAR_LINE)
 
+
+def print_error(text):
+    printf(f"[{BOLD}{RED}!{RESET}] {text}")
+
+
+def print_info(text, end="\n"):
+    printf(f"[{BOLD}{BLUE}*{RESET}] {text}", end=end)
+
+
+def print_input(text):
+    return input(printf(f"[{BOLD}{GREEN}>>>{RESET}] {text} "))
+
+
+def print_cmd(text):
+    printf(f"[{BOLD}{GREEN}>{RESET}] {text}")
+
+
 BANNER = f"""
-{_TBOLD}{_TRED} __      __ {_TRESET}__  _____ __         {_TBOLD}{_TRED}_________{_TRESET}                         __   __     
-{_TBOLD}{_TRED}/  \    /  \\{_TRESET}__|/ ____\__|        {_TBOLD}{_TRED}\    __  \\{_TRESET}  _____ ______   __ ___/  |_|  |__  
-{_TBOLD}{_TRED}\   \/\/   /{_TRESET}  \   __\|  |  ______ {_TBOLD}{_TRED}|  |  \  \\{_TRESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
-{_TBOLD}{_TRED} \        /{_TRESET}|  ||  |  |  | /_____/ {_TBOLD}{_TRED}|  |__/  /{_TRESET}\  ___/| |__\ \|  |  /|  | |   Y  \\
-{_TBOLD}{_TRED}  \__/\__/ {_TRESET}|__||__|  |__|        {_TBOLD}{_TRED} |_______/{_TRESET}  \____/|______/ ____/ |__| |___|__/ 
+{BOLD}{RED} __      __ {RESET}__  _____ __         {BOLD}{RED}_________{RESET}                         __   __     
+{BOLD}{RED}/  \    /  \\{RESET}__|/ ____\__|        {BOLD}{RED}\    __  \\{RESET}  _____ ______   __ ___/  |_|  |__  
+{BOLD}{RED}\   \/\/   /{RESET}  \   __\|  |  ______ {BOLD}{RED}|  |  \  \\{RESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
+{BOLD}{RED} \        /{RESET}|  ||  |  |  | /_____/ {BOLD}{RED}|  |__/  /{RESET}\  ___/| |__\ \|  |  /|  | |   Y  \\
+{BOLD}{RED}  \__/\__/ {RESET}|__||__|  |__|        {BOLD}{RED} |_______/{RESET}  \____/|______/ ____/ |__| |___|__/ 
 """
