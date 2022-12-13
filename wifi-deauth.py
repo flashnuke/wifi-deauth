@@ -104,9 +104,9 @@ class Interceptor:
                 # if ssid not in self._channel_range[self._current_channel_num]:
                 #     self._channel_range[self._current_channel_num][ssid] = \
                 #         self._init_ap_dict(ap_mac, self._current_channel_num)
-                if self._current_channel_num > 14:
+                if self._current_channel_num > 14:  # is 5GHz
                     if ssid not in self._all_5ghz_aps:
-                        self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac, self._current_channel_num > 14)
+                        self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
                     self._all_5ghz_aps[ssid]["channels"].append(self._current_channel_num)
                 else:
                     if ssid not in self._all_5ghz_aps:
