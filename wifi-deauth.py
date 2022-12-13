@@ -5,7 +5,6 @@ import copy
 
 import pkg_resources
 import traceback
-import statistics
 import logging
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
@@ -132,7 +131,8 @@ class Interceptor:
         self._scan_channels_for_aps()
         for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
             for ssid_name, ssid_stats in ap_range.items():
-                ch_med = int(statistics.median(ssid_stats['all_channels']))
+                all_ap_channels = sorted(ssid_stats['all_channels'])
+                ch_med = all_ap_channels[len(all_ap_channels) // 2]
                 self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
                 self._channel_range[ch_med][ssid_name]['channel'] = ch_med
 
