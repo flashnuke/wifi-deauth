@@ -75,7 +75,7 @@ class Interceptor:
     @staticmethod
     def _kill_networkmanager():
         cmd = 'systemctl stop NetworkManager'
-        print_cmd(f"Running command -> '{cmd}'")
+        print_cmd(f"Running command -> '{BOLD}{cmd}{RESET}'")
         return not os.system(cmd)
 
     def _set_channel(self, ch_num):
@@ -133,8 +133,10 @@ class Interceptor:
                 ctr += 1
                 target_map[ctr] = copy.deepcopy(ssid_stats)
                 target_map[ctr]['ssid'] = ssid
+                pref = f"[{str(ctr).rjust(3, ' ')}] "
+                preflen = len(pref)
                 pref = f"[{BOLD}{PURPLE}{str(ctr).rjust(3, ' ')}{RESET}] "
-                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
+                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], preflen)}")
         if not target_map:
             print_error("Not APs were found, quitting...")
             self._abort = True
