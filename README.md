@@ -4,14 +4,18 @@ A DoS attack that disconnects all devices from a target wifi network.
 * The network's password is not required
 * Tested on Kali NetHunter
 
+
+**IMPORTANT!**
+* In some cases you might see the same SSID on different channels due to overlapping. </br> Most overlapping should be eliminated by scanning only non-overlapping channels (2.4GHz channels: 1, 6, 11) but might still occur in 5GHz channels (anything above channel 14)
+* Some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring it down, I usually run simltaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz
+
 ## How it works
-***
-**IMPORTANT! </br> In some cases you see the same SSID on different channels due to overlapping. If one doesn't work (0 clients or no de-auth) try the other channel(s).**
-***
+
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
 After the attacker chooses a target access point to attack, the program:
 1. Continously sends spoofed deauthentication packets using broadcast mac address as the destination
 2. Starts sniffing for clients that are connected to the AP by filtering for certain 802.11 packet frames and sending spoofed deauthentication packets to those clients as well
+
 
 # Usage
 ```bash
