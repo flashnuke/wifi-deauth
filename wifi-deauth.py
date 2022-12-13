@@ -249,6 +249,7 @@ if __name__ == "__main__":
            f"3. Your wireless adapter supports {BOLD}monitor mode{RESET} (refer to docs)\n\n"
            f"Written by {BOLD}@flashnuke{RESET}")
     printf(DELIM)
+    restore_print()
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")

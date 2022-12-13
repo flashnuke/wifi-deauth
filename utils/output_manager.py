@@ -19,6 +19,11 @@ def invalidate_print():
     sys.stdout = _DEVNULL
 
 
+def restore_print():
+    global _ORIG_STDOUT
+    sys.stdout = _ORIG_STDOUT
+
+
 def printf(text, end="\n"):
     global _ORIG_STDOUT, _DEVNULL
     sys.stdout = _ORIG_STDOUT
