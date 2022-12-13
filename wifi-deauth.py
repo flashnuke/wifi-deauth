@@ -107,11 +107,11 @@ class Interceptor:
                 if self._current_channel_num > 14:  # is 5GHz
                     if ssid not in self._all_5ghz_aps:
                         self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_5ghz_aps[ssid]["channels"].append(self._current_channel_num)
+                    self._all_5ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
                 else:
                     if ssid not in self._all_5ghz_aps:
                         self._all_24ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_24ghz_aps[ssid]["channels"].append(self._current_channel_num)
+                    self._all_24ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
@@ -135,7 +135,10 @@ class Interceptor:
         self._scan_channels_for_aps()
         for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
             for ssid_name, ssid_stats in ap_range.items():
-                self._channel_range[statistics.median(ssid_stats['channels'])][ssid_name] = copy.deepcopy(ssid_stats)
+                ch_med = statistics.median(ssid_stats['all_channels'])
+                self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
+                self._channel_range[ch_med][ssid_name]['channel'] = ch_med
+
         ctr = 0
         target_map = dict()
         printf(DELIM)
@@ -247,7 +250,7 @@ class Interceptor:
     @staticmethod
     def _init_ap_dict(mac_addr: str) -> dict:
         return {
-            "channels": list(),
+            "all_channels": list(),
             "mac_addr": mac_addr,
             "clients": list()
         }
