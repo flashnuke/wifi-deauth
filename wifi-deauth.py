@@ -67,7 +67,7 @@ class Interceptor:
         for cmd in [f"sudo ip link set {self.interface} down",
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
-            print_cmd(f"Running command -> '{cmd}'")
+            print_cmd(f"Running command -> '{BOLD}{cmd}{RESET}'")
             if os.system(cmd):
                 return False
         return True
@@ -105,14 +105,15 @@ class Interceptor:
 
     def _scan_channels_for_aps(self):
         try:
-            printf("\n")
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                clear_line(2)
-                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1} out of {len(self._channel_range)})")
+                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1}"
+                           f" out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
+        finally:
+            printf("")
 
     def _start_initial_ap_scan(self) -> dict:
         print_info(f"Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
@@ -122,7 +123,7 @@ class Interceptor:
         ctr = 0
         target_map = dict()
         printf(DELIM)
-        pref = ' ' * 6
+        pref = '[ ]' + (3 * ' ')
         printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
 
         for channel, all_channel_aps in self._channel_range.items():
