@@ -260,8 +260,8 @@ if __name__ == "__main__":
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-ac', '--all-channels', help="don't filter by overlapping channels (use only if you know what"
-                                                      "you're doing!)",
+    parser.add_argument('-a', '--all-channels', help="don't filter by overlapping channels (use only if you know what "
+                                                     "you're doing!)",
                         action='store_true', default=False, dest="all_channels", required=False)
     pargs = parser.parse_args()
 
