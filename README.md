@@ -5,9 +5,9 @@ A DoS attack that disconnects all devices from a target wifi network.
 * Tested on Kali NetHunter
 
 
-**IMPORTANT!**
-* In some cases you might see the same SSID on different channels due to overlapping. </br> Most overlapping should be eliminated by scanning only non-overlapping channels (2.4GHz channels: 1, 6, 11) but might still occur in 5GHz channels (anything above channel 14)
-* Some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring it down, I usually run simltaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz
+**IMPORTANT**
+Channel overlapping should be eliminated by scanning only non-overlapping channels. </br>
+However, some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz
 
 ## How it works
 

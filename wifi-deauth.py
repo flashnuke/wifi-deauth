@@ -101,9 +101,6 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                # if ssid not in self._channel_range[self._current_channel_num]:
-                #     self._channel_range[self._current_channel_num][ssid] = \
-                #         self._init_ap_dict(ap_mac, self._current_channel_num)
                 if self._current_channel_num > 14:  # is 5GHz
                     if ssid not in self._all_5ghz_aps:
                         self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
@@ -121,8 +118,8 @@ class Interceptor:
         try:
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1}"
-                           f" out of {len(self._channel_range)})", end="\r")
+                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1} "
+                           f"out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
@@ -135,7 +132,7 @@ class Interceptor:
         self._scan_channels_for_aps()
         for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
             for ssid_name, ssid_stats in ap_range.items():
-                ch_med = statistics.median(ssid_stats['all_channels'])
+                ch_med = int(statistics.median(ssid_stats['all_channels']))
                 self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
                 self._channel_range[ch_med][ssid_name]['channel'] = ch_med
 
