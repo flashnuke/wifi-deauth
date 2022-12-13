@@ -102,7 +102,7 @@ class Interceptor:
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
-                ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
+                ssid = pkt[Dot11Elt].info.strip(b'\x00').decode('utf-8').strip() or ap_mac
                 pkt_freq = pkt[RadioTap].Channel
                 pkt_ch = self._freq_to_ch(pkt_freq)
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
@@ -128,7 +128,9 @@ class Interceptor:
                            f"out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
-            return
+            printf(f"{DELIM}")
+            print_error(f"User asked to stop, quitting...")
+            exit(0)
         finally:
             printf("")
 
