@@ -245,7 +245,7 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
 
     @staticmethod
-    def _init_ap_dict(mac_addr: str, is_5GHz: bool) -> dict:
+    def _init_ap_dict(mac_addr: str) -> dict:
         return {
             "channels": list(),
             "mac_addr": mac_addr,
