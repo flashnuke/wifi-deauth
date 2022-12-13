@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import copy
+
 import pkg_resources
 import traceback
+import statistics
 import logging
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
@@ -28,7 +31,8 @@ conf.verb = 0
 class Interceptor:
     _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
     _NON_OVERLAPPING_CHANNELS = {1, 6, 11,  # 2.4GHz
-                                 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157}  # 5GHz
+                                 36, 40, 44, 48, 52, 54, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 140, 144,
+                                 149, 153, 157, 161, 165}  # 5GHz
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, all_channels, *args, **kwargs):
         self.interface = net_iface
@@ -62,6 +66,8 @@ class Interceptor:
                 print_error(f"Failed to kill NetworkManager...")
 
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
+        self._all_5ghz_aps = defaultdict(dict)
+        self._all_24ghz_aps = defaultdict(dict)
 
     def _enable_monitor_mode(self):
         for cmd in [f"sudo ip link set {self.interface} down",
@@ -95,9 +101,14 @@ class Interceptor:
                 ssid = pkt[Dot11Elt].info.decode().strip() or ap_mac
                 if ap_mac == self._BROADCAST_MACADDR or not ssid:
                     return
-                if ssid not in self._channel_range[self._current_channel_num]:
-                    self._channel_range[self._current_channel_num][ssid] = \
-                        self._init_ap_dict(ap_mac, self._current_channel_num)
+                if self._current_channel_num > 14:  # is 5GHz
+                    if ssid not in self._all_5ghz_aps:
+                        self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
+                    self._all_5ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
+                else:
+                    if ssid not in self._all_5ghz_aps:
+                        self._all_24ghz_aps[ssid] = self._init_ap_dict(ap_mac)
+                    self._all_24ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except:
@@ -107,8 +118,8 @@ class Interceptor:
         try:
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1}"
-                           f" out of {len(self._channel_range)})", end="\r")
+                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1} "
+                           f"out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             return
@@ -119,6 +130,11 @@ class Interceptor:
         print_info(f"Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
+        for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
+            for ssid_name, ssid_stats in ap_range.items():
+                ch_med = int(statistics.median(ssid_stats['all_channels']))
+                self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
+                self._channel_range[ch_med][ssid_name]['channel'] = ch_med
 
         ctr = 0
         target_map = dict()
@@ -126,7 +142,7 @@ class Interceptor:
         pref = '[   ] '
         printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
 
-        for channel, all_channel_aps in self._channel_range.items():
+        for channel, all_channel_aps in sorted(self._channel_range.items()):
             for ssid, ssid_stats in all_channel_aps.items():
                 if not ssid or not ssid_stats:
                     continue
@@ -229,9 +245,9 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
 
     @staticmethod
-    def _init_ap_dict(mac_addr: str, ch: int) -> dict:
+    def _init_ap_dict(mac_addr: str) -> dict:
         return {
-            "channel": ch,
+            "all_channels": list(),
             "mac_addr": mac_addr,
             "clients": list()
         }
