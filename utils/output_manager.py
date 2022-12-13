@@ -11,6 +11,7 @@ BOLD = '\033[1m'
 RED = '\033[31m'
 GREEN = '\033[32m'
 BLUE = '\033[34m'
+PURPLE = '\033[35m'
 
 
 def invalidate_print():
@@ -38,7 +39,7 @@ def print_info(text):
 
 
 def print_input(text):
-    printf(f"[{BOLD}{GREEN}>>>{RESET}] {text}", end=" -> ")
+    input(printf(f"[{BOLD}{GREEN}>>>{RESET}] {text} "))
 
 
 def print_cmd(text):

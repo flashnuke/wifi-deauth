@@ -132,7 +132,7 @@ class Interceptor:
                 ctr += 1
                 target_map[ctr] = copy.deepcopy(ssid_stats)
                 target_map[ctr]['ssid'] = ssid
-                pref = f"[{str(ctr).rjust(3, ' ')}] "
+                pref = f"[{BOLD}{PURPLE}{str(ctr).rjust(3, ' ')}{RESET}] "
                 printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], len(pref))}")
         if not target_map:
             print_error("Not APs were found, quitting...")
@@ -141,8 +141,7 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            print_input(f"Choose a target from {min(target_map.keys())} <---> {max(target_map.keys())}")
-            chosen = int(input())
+            chosen = int(print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:"))
 
         return target_map[chosen]
 
