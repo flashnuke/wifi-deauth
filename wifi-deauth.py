@@ -132,7 +132,7 @@ class Interceptor:
         for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
             for ssid_name, ssid_stats in ap_range.items():
                 all_ap_channels = sorted(ssid_stats['all_channels'])
-                ch_med = all_ap_channels[len(all_ap_channels) // 2]
+                ch_med = all_ap_channels[len(all_ap_channels) // 2 if len(all_ap_channels) > 1 else all_ap_channels[0]]
                 self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
                 self._channel_range[ch_med][ssid_name]['channel'] = ch_med
 
