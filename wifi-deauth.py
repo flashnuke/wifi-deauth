@@ -105,7 +105,7 @@ class Interceptor:
                         self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
                     self._all_5ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
                 else:
-                    if ssid not in self._all_5ghz_aps:
+                    if ssid not in self._all_24ghz_aps:
                         self._all_24ghz_aps[ssid] = self._init_ap_dict(ap_mac)
                     self._all_24ghz_aps[ssid]["all_channels"].append(self._current_channel_num)
             else:
@@ -131,8 +131,8 @@ class Interceptor:
         self._scan_channels_for_aps()
         for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
             for ssid_name, ssid_stats in ap_range.items():
-                all_ap_channels = sorted(ssid_stats['all_channels'])
-                ch_med = all_ap_channels[len(all_ap_channels) // 2 if len(all_ap_channels) > 1 else all_ap_channels[0]]
+                all_ap_channels = sorted(list(set(ssid_stats['all_channels'])))
+                ch_med = all_ap_channels[len(all_ap_channels) // 2] if len(all_ap_channels) > 1 else all_ap_channels[0]
                 self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
                 self._channel_range[ch_med][ssid_name]['channel'] = ch_med
 
