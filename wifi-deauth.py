@@ -213,14 +213,14 @@ class Interceptor:
 
         printf(f"{DELIM}\n")
         try:
-            start = self.get_time()
+            start = get_time()
             while not self._abort:
                 print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
                 print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
                 print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
                 print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
                 print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid.clients)).rjust(80 - 21, ' ')}{RESET}")
-                print_info(f"Elapsed sec {BOLD}{str(self.get_time() - start).rjust(80 - 16, ' ')}{RESET}")
+                print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
@@ -232,10 +232,6 @@ class Interceptor:
         printf(f"{DELIM}")
         print_error(f"User asked to stop, quitting...")
         exit(0)
-
-    @staticmethod
-    def get_time():
-        return int(time.time())
 
 
 if __name__ == "__main__":
@@ -265,6 +261,5 @@ if __name__ == "__main__":
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface,
                            skip_monitor_mode_setup=pargs.skip_monitormode,
-                           kill_networkmanager=pargs.kill_networkmanager,
-                           all_channels=pargs.all_channels)
+                           kill_networkmanager=pargs.kill_networkmanager)
     attacker.run()
