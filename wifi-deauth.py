@@ -143,7 +143,11 @@ class Interceptor:
 
         chosen = -1
         while chosen not in target_map.keys():
-            chosen = int(print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:"))
+            user_input = print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:")
+            try:
+                chosen = int(user_input)
+            except ValueError:
+                print_error("Wrong input! please enter an integer")
 
         return target_map[chosen]
 
