@@ -5,10 +5,8 @@ A DoS attack that disconnects all devices from a target wifi network.
 * Tested on Kali NetHunter
 
 
-**IMPORTANT**
-Channel overlapping should be eliminated by scanning only non-overlapping channels. </br>
-However, some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
-
+**IMPORTANT** </br>
+Rarely some network APs operate on both 5GHz (`channel > 14`) and 2.4GHz (`channel < 14`) under the same BSSID name. <br>In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
 ## How it works
 
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
@@ -26,7 +24,6 @@ python3 wifi-deauth.py -i <iface>
 * Pass `--kill` (or run `sudo systemctl stop NetworkManager`) in order to kill NetworkManager service which might interfere with the attack
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 * Pass `--skip-monitormode` if you want to enable monitor mode manually (otherwise the program does it automatically)
-* During the channel scanning, some channels are omitted to avoid overlapping.<br> If a BSSID is missing, you can pass `-a` to scan all channels
 
 ### Misc notes
 * Check `ifconfig` to find the interface nickname
