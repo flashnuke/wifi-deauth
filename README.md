@@ -5,10 +5,8 @@ A DoS attack that disconnects all devices from a target wifi network.
 * Tested on Kali NetHunter
 
 
-**IMPORTANT**
-Channel overlapping should be eliminated by scanning only non-overlapping channels. </br>
-However, some network APs operate on both 5GHz and 2.4GHz under the same BSSID name. In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
-
+**IMPORTANT** </br>
+Rarely some network APs operate on both 5GHz (`channel > 14`) and 2.4GHz (`channel < 14`) under the same BSSID name. <br>In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
 ## How it works
 
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
