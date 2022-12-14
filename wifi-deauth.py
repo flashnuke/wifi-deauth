@@ -106,8 +106,8 @@ class Interceptor:
         try:
             for idx, ch_num in enumerate(self._channel_range):
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num} ({idx + 1} "
-                           f"out of {len(self._channel_range)})", end="\r")
+                print_info(f"Scanning channel {self._current_channel_num} (left -> "
+                           f"{len(self._channel_range) - (idx + 1)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout)
         except KeyboardInterrupt:
             self.user_abort()
