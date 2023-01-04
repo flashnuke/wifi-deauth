@@ -6,13 +6,19 @@ A DoS attack that disconnects all devices from a target wifi network.
 
 
 **IMPORTANT** </br>
-Rarely some network APs operate on both 5GHz (`channel > 14`) and 2.4GHz (`channel < 14`) under the same BSSID name. <br>In order to truly bring the AP down, I usually run simultaneously two processes with 2 separate network interfaces, one for 2.4GHz and one for 5GHz.
+In some occasions, network APs might operate on both 5GHz and 2.4GHz under the same BSSID name. <br>
+In order to truly bring the AP down, I usually run simultaneously two de-authers using 2 network interfaces: one for 2.4GHz and one for 5GHz. </br>
+| Bandwith | Channel range |
+|----------|---------------|
+| 2.4 GHz   | 1 <--> 14     |
+| 5 GHz     | 35 <--> 165   |
+
 ## How it works
 
 This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
 After the attacker chooses a target access point to attack, the program:
 1. Continously sends spoofed deauthentication packets using broadcast mac address as the destination
-2. Starts sniffing for clients that are connected to the AP by filtering for certain 802.11 packet frames and sending spoofed deauthentication packets to those clients as well
+2. Starts sniffing for clients that are connected to the AP by filtering for certain 802.11 packet frames and sending spoofed deauthentication packets to those clients in addition to the broadcast address
 
 
 # Usage
@@ -35,8 +41,8 @@ python3 wifi-deauth.py -i <iface>
 * A network adapter that supports monitor mode and packet injection
 * Scapy library (listed in `requirements.txt`)
 
-### Deadnet
-There's [another method](https://github.com/flashnuke/deadnet) to perform a DoS attack on networks, which requires credentials but quite effective.
+# Deadnet
+There's another [project](https://github.com/flashnuke/deadnet) that performs a DoS attack on networks, which requires credentials but quite effective nonetheless.
 
 # Disclaimer
 
