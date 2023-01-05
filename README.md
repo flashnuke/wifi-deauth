@@ -8,7 +8,7 @@ A DoS attack that disconnects all devices from a target wifi network.
 **IMPORTANT** </br>
 In some occasions, network APs might operate on both 5GHz and 2.4GHz under the same BSSID name. <br>
 In order to truly bring the AP down, I usually run simultaneously two de-authers using 2 network interfaces: one for 2.4GHz and one for 5GHz. </br>
-| Bandwith | Channel range |
+| Bandwidth | Channel range |
 |----------|---------------|
 | 2.4 GHz   | 1 <--> 14     |
 | 5 GHz     | 35 <--> 165   |
