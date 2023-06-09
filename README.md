@@ -2,7 +2,7 @@
 </br>
 A DoS attack that disconnects all devices from a target wifi network.
 * The network's password is not required
-* Tested on Kali NetHunter
+* Tested on Kali NetHunter (Snapshot at the bottom)
 
 
 **IMPORTANT** </br>
@@ -14,8 +14,9 @@ In order to truly bring the AP down, I usually run simultaneously two de-authers
 | 5 GHz     | 35 <--> 165   |
 
 ## How it works
+<img src="https://github.com/flashnuke/wifi-deauth/assets/59119926/7f9efac1-bb33-4bee-8b75-2aadd376d065" width="480">
 
-This program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
+The program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
 After the attacker chooses a target access point to attack, the program:
 1. Continously sends spoofed deauthentication packets using broadcast mac address as the destination
 2. Starts sniffing for clients that are connected to the AP by filtering for certain 802.11 packet frames and sending spoofed deauthentication packets to those clients in addition to the broadcast address
