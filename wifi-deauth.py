@@ -120,7 +120,8 @@ class Interceptor:
         self._scan_channels_for_aps()
         for _, band_ssids in self._all_ssids.items():
             for ssid_name, ssid_obj in band_ssids.items():
-                self._channel_range[ssid_obj.channel][ssid_name] = copy.deepcopy(ssid_obj)
+                if ssid_obj.channel in self._channel_range:
+                    self._channel_range[ssid_obj.channel][ssid_name] = copy.deepcopy(ssid_obj)
 
         pref = '[   ] '
         printf(f"{DELIM}\n"
