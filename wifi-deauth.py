@@ -96,7 +96,7 @@ class Interceptor:
                 band_type = BandType.T_50GHZ if pkt_ch > 14 else BandType.T_24GHZ
                 if ssid not in self._all_ssids[band_type]:
                     self._all_ssids[band_type][ssid] = SSID(ssid, ap_mac, band_type)
-                self._all_ssids[band_type][ssid].add_channel(pkt_ch)
+                self._all_ssids[band_type][ssid].add_channel(pkt_ch if pkt_ch in self._channel_range else self._current_channel_num)
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except Exception as exc:
@@ -120,8 +120,7 @@ class Interceptor:
         self._scan_channels_for_aps()
         for _, band_ssids in self._all_ssids.items():
             for ssid_name, ssid_obj in band_ssids.items():
-                if ssid_obj.channel in self._channel_range:
-                    self._channel_range[ssid_obj.channel][ssid_name] = copy.deepcopy(ssid_obj)
+                self._channel_range[ssid_obj.channel][ssid_name] = copy.deepcopy(ssid_obj)
 
         pref = '[   ] '
         printf(f"{DELIM}\n"
