@@ -43,7 +43,7 @@ python3 wifi-deauth.py -i <iface>
 * Scapy library (listed in `requirements.txt`)
 
 # Deadnet
-There's another [project](https://github.com/flashnuke/deadnet) that performs a DoS attack on networks, which requires credentials but quite effective nonetheless.
+There's another [project](https://github.com/flashnuke/deadnet) that performs a DoS attack on networks, which requires [credentials](https://github.com/flashnuke/pass-generator) but quite effective nonetheless.
 
 # Disclaimer
 
