@@ -289,7 +289,7 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
             exit(0)
 
-# todo custom bssid name - document "\" espa
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, Interceptor.user_abort)
 
