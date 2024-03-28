@@ -26,11 +26,16 @@ After the attacker chooses a target access point to attack, the program:
 ```bash
 python3 wifi-deauth.py -i <iface>
 ```
+
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
-* Pass `--kill` (or run `sudo systemctl stop NetworkManager`) in order to kill NetworkManager service which might interfere with the attack
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
-* Pass `--skip-monitormode` if you want to enable monitor mode manually (otherwise the program does it automatically)
+
+### Optional arguments
+* `--bssid <name>` - filter for a specific BSSID (this should shorten the channel-scanning duration), beware that the name is case-sensitive and whitespaces should be passed with an escape character (i.e -> `new\ york`)
+* `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
+* `--kill` (or run `sudo systemctl stop NetworkManager`) - kill NetworkManager service which might interfere with the attack
+* `--skip-monitormode` - enable monitor mode manually (otherwise the program does it automatically)
 
 ### Misc notes
 * Check `ifconfig` to find the interface nickname
