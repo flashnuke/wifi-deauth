@@ -135,8 +135,6 @@ class Interceptor:
                     self._custom_bssid_last_ch = self._all_ssids[band_type][ssid].channel
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
-        except KeyboardInterrupt:
-            self.user_abort()
         except Exception as exc:
             pass
 
@@ -157,8 +155,6 @@ class Interceptor:
                            f"{len(channels_to_scan) - (idx + 1)})", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout,
                       stop_filter=lambda p: Interceptor._ABORT is True)
-        except KeyboardInterrupt:
-            self.user_abort()
         finally:
             printf("")
 
@@ -274,20 +270,16 @@ class Interceptor:
             t.start()
 
         printf(f"{DELIM}\n")
-        try:
-            start = get_time()
-            while not Interceptor._ABORT:
-                print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
-                print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
-                print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
-                print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
-                print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid.clients)).rjust(80 - 21, ' ')}{RESET}")
-                print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
-                sleep(self._printf_res_intv)
-                clear_line(7)
-        except KeyboardInterrupt:
-            print("")
-            self.user_abort()
+        start = get_time()
+        while not Interceptor._ABORT:
+            print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
+            print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
+            print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
+            print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
+            print_info(f"Confirmed clients{BOLD}{str(len(self.target_ssid.clients)).rjust(80 - 21, ' ')}{RESET}")
+            print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
+            sleep(self._printf_res_intv)
+            clear_line(7)
 
     @staticmethod
     def user_abort(*args):
