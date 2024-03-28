@@ -327,6 +327,6 @@ if __name__ == "__main__":
     attacker = Interceptor(net_iface=pargs.net_iface,
                            skip_monitor_mode_setup=pargs.skip_monitormode,
                            kill_networkmanager=pargs.kill_networkmanager,
-                           bssid_name=custom_bbsid,
-                           custom_channels=custom_channels)
+                           bssid_name=pargs.custom_bbsid,
+                           custom_channels=pargs.custom_channels)
     attacker.run()
