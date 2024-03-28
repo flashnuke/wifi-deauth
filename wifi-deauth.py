@@ -65,7 +65,7 @@ class Interceptor:
 
         self._custom_bssid_name: Union[str, None] = self.parse_custom_bssid_name(bssid_name)
         self._custom_bssid_channels: List[int] = self.parse_custom_channels(custom_channels)
-        self._custom_bbsid_last_ch = 0  # to avoid overlapping
+        self._custom_bssid_last_ch = 0  # to avoid overlapping
 
     @staticmethod
     def parse_custom_bssid_name(bssid_name: Union[None, str]) -> Union[None, str]:
@@ -123,7 +123,7 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.strip(b'\x00').decode('utf-8').strip() or ap_mac
-                if ap_mac == BD_MACADDR or not ssid or (self._custom_bbsid_name_is_set()
+                if ap_mac == BD_MACADDR or not ssid or (self._custom_bssid_name_is_set()
                                                         and ssid != self._custom_bssid_name):
                     return
                 pkt_ch = frequency_to_channel(pkt[RadioTap].Channel)
@@ -131,8 +131,8 @@ class Interceptor:
                 if ssid not in self._all_ssids[band_type]:
                     self._all_ssids[band_type][ssid] = SSID(ssid, ap_mac, band_type)
                 self._all_ssids[band_type][ssid].add_channel(pkt_ch if pkt_ch in self._channel_range else self._current_channel_num)
-                if self._custom_bbsid_name_is_set():
-                    self._custom_bbsid_last_ch = self._all_ssids[band_type][ssid].channel
+                if self._custom_bssid_name_is_set():
+                    self._custom_bssid_last_ch = self._all_ssids[band_type][ssid].channel
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except KeyboardInterrupt:
@@ -143,14 +143,14 @@ class Interceptor:
     def _scan_channels_for_aps(self):
         channels_to_scan = self._custom_bssid_channels or self._channel_range
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
-        if self._custom_bbsid_name_is_set():
-            print_info(f"Scanning for target BBSID -> {self._custom_bssid_name}")
+        if self._custom_bssid_name_is_set():
+            print_info(f"Scanning for target BSSID -> {self._custom_bssid_name}")
 
         try:
             for idx, ch_num in enumerate(channels_to_scan):
-                if self._custom_bbsid_name_is_set() and self._found_custom_bssid_name() \
-                        and self._current_channel_num - self._custom_bbsid_last_ch > 2:
-                    # make sure sniffing doesn't stop on an overlapped channel for custom BBSIDs
+                if self._custom_bssid_name_is_set() and self._found_custom_bssid_name() \
+                        and self._current_channel_num - self._custom_bssid_last_ch > 2:
+                    # make sure sniffing doesn't stop on an overlapped channel for custom BSSIDs
                     return
                 self._set_channel(ch_num)
                 print_info(f"Scanning channel {self._current_channel_num} (left -> "
@@ -169,7 +169,7 @@ class Interceptor:
                     return True
         return False
 
-    def _custom_bbsid_name_is_set(self):
+    def _custom_bssid_name_is_set(self):
         return self._custom_bssid_name is not None
 
     def _start_initial_ap_scan(self) -> SSID:
@@ -297,7 +297,7 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
             exit(0)
 
-# todo custom bbsid name - document "\" espa
+# todo custom bssid name - document "\" espa
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, Interceptor.user_abort)
 
@@ -322,8 +322,8 @@ if __name__ == "__main__":
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-b', '--bbsid', help='custom BBSID name (case-sensitive)', metavar="bssid_name",
-                        action='store', default=None, dest="custom_bbsid", required=False)
+    parser.add_argument('-b', '--bssid', help='custom BSSID name (case-sensitive)', metavar="bssid_name",
+                        action='store', default=None, dest="custom_bssid", required=False)
     parser.add_argument('-c', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
     pargs = parser.parse_args()
@@ -332,6 +332,6 @@ if __name__ == "__main__":
     attacker = Interceptor(net_iface=pargs.net_iface,
                            skip_monitor_mode_setup=pargs.skip_monitormode,
                            kill_networkmanager=pargs.kill_networkmanager,
-                           bssid_name=pargs.custom_bbsid,
+                           bssid_name=pargs.custom_bssid,
                            custom_channels=pargs.custom_channels)
     attacker.run()
