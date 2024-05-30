@@ -14,7 +14,7 @@ In order to truly bring the AP down, I usually run simultaneously two de-authers
 | 5 GHz     | 35 <--> 165   |
 
 ## How it works
-<img src="https://github.com/flashnuke/wifi-deauth/assets/59119926/7f9efac1-bb33-4bee-8b75-2aadd376d065" width="480">
+<img src="https://github.com/flashnuke/wifi-deauth/assets/59119926/26f75cce-0484-4949-840e-d23fa976ff9b" width="480">
 
 The program iterates over all possible channels, and by sniffing `802.11` packets it determines which access points are available. </br>
 After the attacker chooses a target access point to attack, the program:
@@ -23,8 +23,19 @@ After the attacker chooses a target access point to attack, the program:
 
 
 # Usage
+#### Installing on the system
 ```bash
-python3 wifi_deauth.py -i <iface>
+git clone https://github.com/flashnuke/wifi-deauth.git
+sudo pip3 install .
+sudo wifi-deauth -i <iface>
+```
+
+#### Running without installing 
+```bash
+git clone https://github.com/flashnuke/wifi-deauth.git
+pip3 install -r requirements.txt # install requirements manually
+cd wifi_deauth
+sudo python3 wifi_deauth.py -i <iface>
 ```
 
 ### Usage notes
