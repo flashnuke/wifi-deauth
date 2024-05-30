@@ -24,7 +24,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'wifi_deauth=wifi_deauth.wifi_deauth:main',
+            'wifi-deauth=wifi_deauth.wifi_deauth:main',
         ],
     },
 )

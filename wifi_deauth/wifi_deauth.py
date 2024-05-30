@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
-import copy
 import signal
 import logging
 import argparse
-import traceback
 import pkg_resources
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
 from scapy.all import *
 from time import sleep
-from utils import *
+from .utils import *
 
 conf.verb = 0
 
