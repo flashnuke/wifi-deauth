@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-import copy
 import signal
 import logging
 import argparse
-import traceback
-import pkg_resources
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
 from scapy.all import *
 from time import sleep
-from utils import *
+
+try:
+    from .utils import *
+except ImportError:
+    from utils import *
 
 conf.verb = 0
 
@@ -290,7 +291,7 @@ class Interceptor:
             exit(0)
 
 
-if __name__ == "__main__":
+def main():
     signal.signal(signal.SIGINT, Interceptor.user_abort)
 
     printf(f"\n{BANNER}\n"
@@ -304,8 +305,6 @@ if __name__ == "__main__":
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
-    with open("requirements.txt", "r") as reqs:
-        pkg_resources.require(reqs.readlines())
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
@@ -327,3 +326,7 @@ if __name__ == "__main__":
                            bssid_name=pargs.custom_bssid,
                            custom_channels=pargs.custom_channels)
     attacker.run()
+
+
+if __name__ == "__main__":
+    main()
