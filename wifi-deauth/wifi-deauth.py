@@ -289,8 +289,7 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
             exit(0)
 
-
-if __name__ == "__main__":
+def main():
     signal.signal(signal.SIGINT, Interceptor.user_abort)
 
     printf(f"\n{BANNER}\n"
@@ -327,3 +326,7 @@ if __name__ == "__main__":
                            bssid_name=pargs.custom_bssid,
                            custom_channels=pargs.custom_channels)
     attacker.run()
+
+
+if __name__ == "__main__":
+    main()
