@@ -9,7 +9,11 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
 from scapy.all import *
 from time import sleep
-from .utils import *
+
+try:
+    from .utils import *
+except ImportError:
+    from utils import *
 
 conf.verb = 0
 
@@ -287,6 +291,7 @@ class Interceptor:
             print_error(f"User asked to stop, quitting...")
             exit(0)
 
+
 def main():
     signal.signal(signal.SIGINT, Interceptor.user_abort)
 
@@ -301,7 +306,7 @@ def main():
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
-    with open("requirements.txt", "r") as reqs:
+    with open("../requirements.txt", "r") as reqs:
         pkg_resources.require(reqs.readlines())
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
