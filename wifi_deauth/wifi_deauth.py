@@ -3,7 +3,6 @@
 import signal
 import logging
 import argparse
-import pkg_resources
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -306,8 +305,6 @@ def main():
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
-    with open("../requirements.txt", "r") as reqs:
-        pkg_resources.require(reqs.readlines())
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
