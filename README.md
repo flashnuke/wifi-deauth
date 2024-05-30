@@ -24,7 +24,7 @@ After the attacker chooses a target access point to attack, the program:
 
 # Usage
 ```bash
-python3 wifi-deauth.py -i <iface>
+python3 wifi_deauth.py -i <iface>
 ```
 
 ### Usage notes

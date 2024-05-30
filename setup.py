@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='wifi-deauth',
+    name='wifi_deauth',
     version='1.2',
     description='WiFi deauthentication tool built with Python using the Scapy library',
     long_description=open('README.md').read(),
@@ -24,7 +24,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'wifi-deauth=wifi-deauth.wifi-deauth:main',
+            'wifi_deauth=wifi_deauth.wifi_deauth:main',
         ],
     },
 )
