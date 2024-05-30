@@ -33,7 +33,7 @@ sudo wifi-deauth -i <iface>
 #### Running without installing 
 ```bash
 git clone https://github.com/flashnuke/wifi-deauth.git
-pip3 install -r requirements.txt # install requirements manually
+sudo pip3 install -r requirements.txt # install requirements manually
 cd wifi_deauth
 sudo python3 wifi_deauth.py -i <iface>
 ```
