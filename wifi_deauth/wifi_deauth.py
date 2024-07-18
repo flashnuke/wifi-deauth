@@ -310,7 +310,7 @@ class Interceptor:
     def _send_deauth_broadcast(self, ap_mac: str):
         sendp(RadioTap() /
               Dot11(addr1=BD_MACADDR, addr2=ap_mac, addr3=ap_mac) /
-              deauth_frm,
+              Dot11Deauth(reason=7),
               iface=self.interface)
 
     def run(self):
