@@ -269,7 +269,8 @@ class Interceptor:
                 print_info(output)
             if bf_sz > 0:
                 printf(DELIM, end="\n")
-        return bf_sz + 1
+                bf_sz += 1
+        return bf_sz
 
     @staticmethod
     def _packet_confirms_client(pkt):
