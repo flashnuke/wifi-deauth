@@ -45,6 +45,7 @@ sudo python3 wifi_deauth.py -i <iface>
 ### Optional arguments
 * `--bssid <name>` - filter for a specific BSSID (this should shorten the channel-scanning duration), beware that the name is case-sensitive and whitespaces should be passed with an escape character (i.e -> `new\ york`)
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
+* `--clients <m_addr1,m_addr2>` - target only specific clients to disconnect from the AP, otherwise all connected clients will be targeted (note: using this option disables deauth broadcast)
 * `--kill` (or run `sudo systemctl stop NetworkManager`) - kill NetworkManager service which might interfere with the attack
 * `--skip-monitormode` - enable monitor mode manually (otherwise the program does it automatically)
 
@@ -52,6 +53,7 @@ sudo python3 wifi_deauth.py -i <iface>
 * Check `ifconfig` to find the interface nickname
 * Works for 2.4GHhz and 5Ghz
 * Beware that some access points have protections against this kind of attack and therefore it might not work on them
+* Setting custom client mac addresses (`--clients`) is not suggested, as some clients might reconnect using a random MAC address which is different than the one set
 
 ### Requirements
 * Linux OS
