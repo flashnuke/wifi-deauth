@@ -371,7 +371,7 @@ def main():
     parser.add_argument('-b', '--bssid', help='custom BSSID name (case-sensitive)', metavar="bssid_name",
                         action='store', default=None, dest="custom_bssid", required=False)
     parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
-                                                 ' separated by a comma (i.e -> m_addr1,m_addr2)', metavar="client_mac_addrs",
+                                                 ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
     parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
