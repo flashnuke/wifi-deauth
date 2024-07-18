@@ -262,11 +262,12 @@ class Interceptor:
             pass
 
     def _print_midrun_output(self):
-        with self._midrun_output_lck:
-            output = "\n".join(self._midrun_output_buffer)
-            # for output in self._midrun_output_buffer:
-            print_info(output, end='') # todo
-            self._midrun_output_buffer.clear()
+        if self._midrun_output_buffer:
+            with self._midrun_output_lck:
+                output = "\n".join(self._midrun_output_buffer)
+                # for output in self._midrun_output_buffer:
+                print_info(output, end='') # todo
+                self._midrun_output_buffer.clear()
 
     @staticmethod
     def _packet_confirms_client(pkt):
