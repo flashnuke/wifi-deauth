@@ -340,7 +340,7 @@ class Interceptor:
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
             # todo found clients here?
             sleep(self._printf_res_intv)
-            clear_line(8) # todo test what happens if a new client appears
+            clear_line(7) # todo test what happens if a new client appears
             self._print_midrun_output()
 
     @staticmethod
