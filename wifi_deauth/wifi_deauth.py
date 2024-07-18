@@ -251,7 +251,7 @@ class Interceptor:
                 ap_mac = str(pkt.addr3)
                 if ap_mac == self.target_ssid.mac_addr:
                     c_mac = pkt.addr1
-                    if c_mac != BD_MACADDR and c_mac not in self.target_ssid.clients:
+                    if c_mac not in [BD_MACADDR, self.target_ssid.mac_addr] and c_mac not in self.target_ssid.clients:
                         self.target_ssid.clients.append(c_mac)
                         add_to_target_list = len(self._custom_target_client_mac) == 0 or c_mac in self._custom_target_client_mac
                         with self._midrun_output_lck:
