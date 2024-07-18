@@ -5,7 +5,7 @@ import logging
 import argparse
 import threading
 
-logging.getLogger("scapy.runtime").setLevel(logging.NOTSET)  # suppress warnings
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
 from scapy.all import *
 from time import sleep
