@@ -264,8 +264,9 @@ class Interceptor:
     def _print_midrun_output(self):
         if self._midrun_output_buffer:
             with self._midrun_output_lck:
-                for output in self._midrun_output_buffer:
-                    print_info(output)
+                output = '\n'.join(self._midrun_output_buffer)
+                # for output in self._midrun_output_buffer:
+                print_info(output, end="\n\n")
                 self._midrun_output_buffer.clear()
 
     @staticmethod
@@ -340,7 +341,7 @@ class Interceptor:
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
             # todo found clients here?
             sleep(self._printf_res_intv)
-            clear_line(9) # todo test what happens if a new client appears
+            clear_line(7) # todo test what happens if a new client appears
             self._print_midrun_output()
 
     @staticmethod
