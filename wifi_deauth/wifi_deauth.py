@@ -336,11 +336,11 @@ class Interceptor:
             print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
             print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
             print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
-            print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 21, ' ')}{RESET}")
+            print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
             # todo found clients here?
             sleep(self._printf_res_intv)
-            clear_line(7) # todo test what happens if a new client appears
+            clear_line(8) # todo test what happens if a new client appears
             self._print_midrun_output()
 
     @staticmethod
