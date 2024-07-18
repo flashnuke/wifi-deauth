@@ -329,9 +329,10 @@ class Interceptor:
             t.start()
 
         start = get_time()
+        printf(f"{DELIM}\n")
+
         while not Interceptor._ABORT:
 
-            printf(f"{DELIM}\n")
             print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
             print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
             print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
