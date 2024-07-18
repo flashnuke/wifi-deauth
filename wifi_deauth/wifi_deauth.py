@@ -253,7 +253,7 @@ class Interceptor:
                     c_mac = pkt.addr1
                     if c_mac != BD_MACADDR and c_mac not in self.target_ssid.clients:
                         self.target_ssid.clients.append(c_mac)
-                        add_to_target_list = not self._custom_target_client_mac or c_mac in self._custom_target_client_mac
+                        add_to_target_list = len(self._custom_target_client_mac) == 0 or c_mac in self._custom_target_client_mac
                         with self._midrun_output_lck:
                             self._midrun_output_buffer.append(f"Found new client {BOLD}{c_mac}{RESET},"
                                                               f" adding to target list -> "
@@ -263,8 +263,9 @@ class Interceptor:
 
     def _print_midrun_output(self):
         with self._midrun_output_lck:
-            for output in self._midrun_output_buffer:
-                print_info(output)
+            output = "\n".join(self._midrun_output_buffer)
+            # for output in self._midrun_output_buffer:
+            print_info(output, end='') # todo
             self._midrun_output_buffer.clear()
 
     @staticmethod
