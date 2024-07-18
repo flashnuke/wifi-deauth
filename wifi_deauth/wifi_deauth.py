@@ -264,7 +264,7 @@ class Interceptor:
     def _print_midrun_output(self):
         if self._midrun_output_buffer:
             with self._midrun_output_lck:
-                output = '\n'.join(self._midrun_output_buffer)
+                output = '\n'.join([print_info(msg, end="\n", return_instead=True) for msg in self._midrun_output_buffer])
                 # for output in self._midrun_output_buffer:
                 print_info(output, end="\n\n")
                 self._midrun_output_buffer.clear()

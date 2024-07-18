@@ -39,8 +39,11 @@ def print_error(text):
     printf(f"[{BOLD}{RED}!{RESET}] {text}")
 
 
-def print_info(text, end="\n"):
-    printf(f"[{BOLD}{BLUE}*{RESET}] {text}", end=end)
+def print_info(text, end="\n", return_instead=False):
+    output = f"[{BOLD}{BLUE}*{RESET}] {text}"
+    if return_instead:
+        return output
+    printf(output, end=end)
 
 
 def print_input(text):
