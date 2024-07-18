@@ -290,6 +290,7 @@ class Interceptor:
                 for client_mac in self._get_target_clients():
                     self._send_deauth_client(ap_mac, client_mac)
                 if not self._custom_target_client_mac:
+                    print("asdasd")
                     self._send_deauth_broadcast(ap_mac)
             sleep(self._deauth_intv)
         except Exception as exc:
