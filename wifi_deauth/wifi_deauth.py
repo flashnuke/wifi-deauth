@@ -67,7 +67,7 @@ class Interceptor:
         self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
 
         self._custom_bssid_name: Union[str, None] = self.parse_custom_bssid_name(bssid_name)
-        self._custom_target_client_mac: Union[str, None] = self.parse_custom_client_mac(custom_client_macs)
+        self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
         self._custom_bssid_channels: List[int] = self.parse_custom_channels(custom_channels)
         self._custom_bssid_last_ch = 0  # to avoid overlapping
 
@@ -84,9 +84,23 @@ class Interceptor:
         return bssid_name
 
     @staticmethod
-    def parse_custom_client_mac(bssid_name: Union[None, str]) -> List[str]:
+    def verify_mac_addr(mac_addr: str) -> str:
+        try:
+            RandMAC(mac_addr)
+            return mac_addr
+        except Exception as exc:
+            print_error(f"Invalid custom client mac address -> {mac_addr}")
+            raise Exception("Bad custom client mac address")
+
+    @staticmethod
+    def parse_custom_client_mac(client_mac_addrs: Union[None, str]) -> List[str]:
         custom_client_mac_list = list()
-        # todo method to check if MACaddr is valid
+        if client_mac_addrs is not None:
+            try:
+                custom_client_mac_list = [Interceptor.verify_mac_addr(mac) for mac in client_mac_addrs.split(',')]
+            except Exception as exc:
+                print_error(f"Invalid custom client mac input -> {client_mac_addrs}")
+                raise Exception("Bad custom client mac input")
         # todo add note that if custom client is added, no broadcast is done
         # todo add to readme
 
@@ -97,12 +111,6 @@ class Interceptor:
 
         # todo what about case sensitivity?
         return custom_client_mac_list
-        # if bssid_name is not None:
-        #     bssid_name = str(bssid_name)
-        #     if len(bssid_name) == 0:
-        #         print_error(f"Custom BSSID name cannot be an empty string")
-        #         raise Exception("Invalid BSSID name")
-        # return bssid_name
 
     def parse_custom_channels(self, channel_list: Union[None, str]):
         ch_list = list()
@@ -247,7 +255,7 @@ class Interceptor:
                         self.target_ssid.clients.append(c_mac)
                         add_to_target_list = not self._custom_target_client_mac or c_mac in self._custom_target_client_mac
                         with self._midrun_output_lck:
-                            self._midrun_output_buffer.append(f"Found new client {Bold}{c_mac}{RESET},"
+                            self._midrun_output_buffer.append(f"Found new client {BOLD}{c_mac}{RESET},"
                                                               f" adding to target list -> "
                                                               f"{GREEN if add_to_target_list else RED}{add_to_target_list}{RESET}")
         except:
