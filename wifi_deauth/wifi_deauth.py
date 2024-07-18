@@ -262,11 +262,14 @@ class Interceptor:
             pass
 
     def _print_midrun_output(self):
+        bf_sz = len(self._midrun_output_buffer)
         with self._midrun_output_lck:
             # output = '\n'.join([print_cmd(msg, return_instead=True) for msg in self._midrun_output_buffer])
             for output in self._midrun_output_buffer:
                 print_info(output)
-        return len(self._midrun_output_buffer)
+            if bf_sz > 0:
+                printf(DELIM, end="\n")
+        return bf_sz + 1
 
     @staticmethod
     def _packet_confirms_client(pkt):
