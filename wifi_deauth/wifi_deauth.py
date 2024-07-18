@@ -264,10 +264,10 @@ class Interceptor:
     def _print_midrun_output(self):
         if self._midrun_output_buffer:
             with self._midrun_output_lck:
-                output = '\n'.join([print_cmd(msg, return_instead=True) for msg in self._midrun_output_buffer])
-                # for output in self._midrun_output_buffer:
-                printf(output, end="\n\n")
-                self._midrun_output_buffer.clear()
+                # output = '\n'.join([print_cmd(msg, return_instead=True) for msg in self._midrun_output_buffer])
+                for output in self._midrun_output_buffer:
+                    print_info(output)
+                return len(self._midrun_output_buffer)
 
     @staticmethod
     def _packet_confirms_client(pkt):
@@ -332,7 +332,7 @@ class Interceptor:
         printf(f"{DELIM}\n")
 
         while not Interceptor._ABORT:
-
+            buffer_sz = self._print_midrun_output()
             print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
             print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
             print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
@@ -341,8 +341,7 @@ class Interceptor:
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
             # todo found clients here?
             sleep(self._printf_res_intv)
-            clear_line(7) # todo test what happens if a new client appears
-            self._print_midrun_output()
+            clear_line(7 + buffer_sz) # todo test what happens if a new client appears
 
     @staticmethod
     def user_abort(*args):
