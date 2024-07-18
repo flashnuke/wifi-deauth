@@ -102,14 +102,12 @@ class Interceptor:
                 print_error(f"Invalid custom client mac input -> {client_mac_addrs}")
                 raise Exception("Bad custom client mac input")
         # todo add note that if custom client is added, no broadcast is done
-        # todo add to readme
 
         if custom_client_mac_list:
             print_info(f"Disabling broadcast deauth, attacking custom clients instead: {custom_client_mac_list}")
-        else:  # todo if bad name then raise -> avoid executing "else" clause
+        else:
             print_info(f"No custom clients selected, enabling broadcast deauth and attacking all connected clients")
 
-        # todo what about case sensitivity?
         return custom_client_mac_list
 
     def parse_custom_channels(self, channel_list: Union[None, str]):
@@ -264,9 +262,8 @@ class Interceptor:
     def _print_midrun_output(self):
         bf_sz = len(self._midrun_output_buffer)
         with self._midrun_output_lck:
-            # output = '\n'.join([print_cmd(msg, return_instead=True) for msg in self._midrun_output_buffer])
             for output in self._midrun_output_buffer:
-                print_info(output)
+                print_cmd(output)
             if bf_sz > 0:
                 printf(DELIM, end="\n")
                 bf_sz += 1
@@ -295,7 +292,6 @@ class Interceptor:
                 for client_mac in self._get_target_clients():
                     self._send_deauth_client(ap_mac, client_mac)
                 if not self._custom_target_client_mac:
-                    print("asdasd")
                     self._send_deauth_broadcast(ap_mac)
             sleep(self._deauth_intv)
         except Exception as exc:
@@ -342,9 +338,8 @@ class Interceptor:
             print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
             print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
-            # todo found clients here?
             sleep(self._printf_res_intv)
-            clear_line(7 + buffer_sz) # todo test what happens if a new client appears
+            clear_line(7 + buffer_sz)
 
     @staticmethod
     def user_abort(*args):

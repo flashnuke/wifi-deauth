@@ -47,11 +47,8 @@ def print_input(text):
     return input(printf(f"[{BOLD}{GREEN}<{RESET}] {text} "))
 
 
-def print_cmd(text, end="\n", return_instead=False):
-    output = f"[{BOLD}{GREEN}>{RESET}] {text}"
-    if return_instead:
-        return output
-    printf(output, end=end)
+def print_cmd(text):
+    printf(f"[{BOLD}{GREEN}>{RESET}] {text}")
 
 
 BANNER = f"""
