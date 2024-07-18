@@ -96,11 +96,7 @@ class Interceptor:
     def parse_custom_client_mac(client_mac_addrs: Union[None, str]) -> List[str]:
         custom_client_mac_list = list()
         if client_mac_addrs is not None:
-            try:
-                custom_client_mac_list = [Interceptor.verify_mac_addr(mac) for mac in client_mac_addrs.split(',')]
-            except Exception as exc:
-                print_error(f"Invalid custom client mac input -> {client_mac_addrs}")
-                raise Exception("Bad custom client mac input")
+            custom_client_mac_list = [Interceptor.verify_mac_addr(mac) for mac in client_mac_addrs.split(',')]
         # todo add note that if custom client is added, no broadcast is done
 
         if custom_client_mac_list:
@@ -375,11 +371,11 @@ def main():
     parser.add_argument('-b', '--bssid', help='custom BSSID name (case-sensitive)', metavar="bssid_name",
                         action='store', default=None, dest="custom_bssid", required=False)
     parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
-                                                ' separated by a comma (i.e -> m_addr1,m_addr2)', metavar="client_mac_addrs",
+                                                 ' separated by a comma (i.e -> m_addr1,m_addr2)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
     parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
-    pargs = parser.parse_args() # todo readme channels and clients update params cmdline
+    pargs = parser.parse_args()  # todo readme channels and clients update params cmdline
 
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface,
