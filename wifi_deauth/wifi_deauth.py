@@ -78,8 +78,6 @@ class Interceptor:
         self._midrun_output_lck = threading.RLock()
 
         self._autostart = autostart
-        if self._autostart and not (self._custom_bssid_addr_is_set() or self._custom_ssid_name_is_set()):
-            raise Exception("autostart requires custom BSSID / SSID!")
 
     @staticmethod
     def parse_custom_ssid_name(ssid_name: Union[None, str]) -> Union[None, str]:
@@ -255,16 +253,16 @@ class Interceptor:
                 print_error(f"Cannot autostart!")
                 print_error(f"Found more than 1 access points, try better filters "
                             f"(i.e 5GHz vs 2.4GHz, BSSID address...)")
-                raise Exception("Unable to autostart")
             else:
                 chosen = 1
-        else:
-            while chosen not in target_map.keys():
-                user_input = print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:")
-                try:
-                    chosen = int(user_input)
-                except ValueError:
-                    print_error("Wrong input! please enter an integer")
+
+        # won't enter loop if autostart was set
+        while chosen not in target_map.keys():
+            user_input = print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:")
+            try:
+                chosen = int(user_input)
+            except ValueError:
+                print_error("Wrong input! please enter an integer")
 
         return target_map[chosen]
 
@@ -416,7 +414,7 @@ def main():
                         action='store', default=None, dest="custom_client_macs", required=False)
     parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
-    parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (only if one access point)',
+    parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
                         action='store_true', default=False, dest="autostart", required=False)
     pargs = parser.parse_args()
 
