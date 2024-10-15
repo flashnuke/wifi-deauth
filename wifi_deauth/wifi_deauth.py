@@ -69,7 +69,7 @@ class Interceptor:
         self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
 
         self._custom_ssid_name: Union[str, None] = self.parse_custom_ssid_name(ssid_name)
-        self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr) # todo add to args and docs etc
+        self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr)
         self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
         self._custom_target_ap_channels: List[int] = self.parse_custom_channels(custom_channels)
         self._custom_target_ap_last_ch = 0  # to avoid overlapping
@@ -107,7 +107,7 @@ class Interceptor:
     def parse_custom_client_mac(client_mac_addrs: Union[None, str]) -> List[str]:
         custom_client_mac_list = list()
         if client_mac_addrs is not None:
-            for mac in client_mac_addrs.split(','):  # todo test bad client mac
+            for mac in client_mac_addrs.split(','):
                 try:
                     custom_client_mac_list = list()
                     custom_client_mac_list.append(Interceptor.verify_mac_addr(mac))
@@ -392,12 +392,6 @@ def main():
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
     
-    # TODO autostart only if BSSID is provided
-    # TODO autostart docs
-    # todo docs - add that its for automation
-    # todo test bssid (bad mac)
-    # todo test ssid (empty, no ssid, etc... check error messages see if correct)
-    # todo test bad clent mac
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
@@ -406,7 +400,7 @@ def main():
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-s', '--ssid', help='custom SSID name (case-insensitive)', metavar="ssid_name", # todo case insensitive in docs and filter partial
+    parser.add_argument('-s', '--ssid', help='custom SSID name (case-insensitive)', metavar="ssid_name",
                         action='store', default=None, dest="custom_ssid", required=False)
     parser.add_argument('-b', '--bssid', help='custom BSSID address (case-insensitive)', metavar="bssid_addr",
                         action='store', default=None, dest="custom_bssid", required=False)
