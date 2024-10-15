@@ -46,7 +46,7 @@ sudo python3 wifi_deauth.py -i <iface>
 ### Optional arguments
 * `--ssid <name>` - filter for a specific SSID by a case-insensitive substring (this should shorten the channel-scanning duration), whitespaces should be passed with an escape character (i.e -> `new\ york`)
 * `--bssid <addr>` - filter for a specific BSSID (the access point's MAC address), case in-sensitive
-* `--autostart` - autostart the de-auth loop automatically, works only when one access point is found
+* `--autostart` - start the de-auth loop automatically, works only when one access point is found
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
 * `--clients <m_addr1,m_addr2>` - target only specific clients to disconnect from the AP, otherwise all connected clients will be targeted (note: using this option disables deauth broadcast)
 * `--kill` (or run `sudo systemctl stop NetworkManager`) - kill NetworkManager service which might interfere with the attack
