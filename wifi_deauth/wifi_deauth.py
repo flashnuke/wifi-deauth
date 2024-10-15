@@ -257,7 +257,7 @@ class Interceptor:
                             f"(i.e 5GHz vs 2.4GHz, BSSID address...)")
                 raise Exception("Unable to autostart")
             else:
-                chosen = 0
+                chosen = 1
         else:
             while chosen not in target_map.keys():
                 user_input = print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:")
