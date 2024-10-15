@@ -254,6 +254,7 @@ class Interceptor:
                 print_error(f"Found more than 1 access points, try better filters "
                             f"(i.e 5GHz vs 2.4GHz, BSSID address...)")
             else:
+                print_info("One target was found, autostart was set to True")
                 chosen = 1
 
         # won't enter loop if autostart was set
