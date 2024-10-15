@@ -44,7 +44,7 @@ sudo python3 wifi_deauth.py -i <iface>
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 
 ### Optional arguments
-* `--ssid <name>` - filter for a specific SSID (this should shorten the channel-scanning duration), beware that the name is case-sensitive and whitespaces should be passed with an escape character (i.e -> `new\ york`)
+* `--ssid <name>` - filter for a specific SSID by a case-insensitive substring (this should shorten the channel-scanning duration), whitespaces should be passed with an escape character (i.e -> `new\ york`)
 * `--bssid <addr>` - filter for a specific BSSID (the access point's MAC address), case in-sensitive
 * `--autostart` - autostart the de-auth loop automatically, works only when one access point is found
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
