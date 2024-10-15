@@ -3,7 +3,9 @@
 import signal
 import logging
 import argparse
-import threading
+
+from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
+    Dot11QoS, Dot11Deauth, Dot11
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # suppress warnings
 
@@ -417,7 +419,6 @@ def main():
     parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (only if one access point)',
                         action='store_true', default=False, dest="autostart", required=False)
     pargs = parser.parse_args()
-
 
     invalidate_print()  # after arg parsing
     attacker = Interceptor(net_iface=pargs.net_iface,
