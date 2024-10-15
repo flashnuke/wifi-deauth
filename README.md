@@ -6,7 +6,7 @@ A DoS attack that disconnects all devices from a target wifi network.
 
 
 **IMPORTANT** </br>
-In some occasions, network APs might operate on both 5GHz and 2.4GHz under the same BSSID name. <br>
+In some occasions, network APs might operate on both 5GHz and 2.4GHz under the same BSSID/SSID name. <br>
 In order to truly bring the AP down, I usually run simultaneously two de-authers using 2 network interfaces: one for 2.4GHz and one for 5GHz. </br>
 | Bandwidth | Channel range |
 |----------|---------------|
@@ -40,10 +40,13 @@ sudo python3 wifi_deauth.py -i <iface>
 
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
+* `--autostart` is good for automation - first make sure that only 1 access point is found, you can use filters (bssid, ssid, channels, etc...) to ensure that
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 
 ### Optional arguments
-* `--bssid <name>` - filter for a specific BSSID (this should shorten the channel-scanning duration), beware that the name is case-sensitive and whitespaces should be passed with an escape character (i.e -> `new\ york`)
+* `--ssid <name>` - filter for a specific SSID (this should shorten the channel-scanning duration), beware that the name is case-sensitive and whitespaces should be passed with an escape character (i.e -> `new\ york`)
+* `--bssid <addr>` - filter for a specific BSSID (the access point's MAC address), case in-sensitive
+* `--autostart` - autostart the de-auth loop automatically, works only when one access point is found
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
 * `--clients <m_addr1,m_addr2>` - target only specific clients to disconnect from the AP, otherwise all connected clients will be targeted (note: using this option disables deauth broadcast)
 * `--kill` (or run `sudo systemctl stop NetworkManager`) - kill NetworkManager service which might interfere with the attack
