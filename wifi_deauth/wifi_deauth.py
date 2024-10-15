@@ -173,7 +173,7 @@ class Interceptor:
                 ap_mac = str(pkt.addr3)
                 ssid = pkt[Dot11Elt].info.strip(b'\x00').decode('utf-8').strip() or ap_mac
                 if ap_mac == BD_MACADDR or not ssid or (self._custom_ssid_name_is_set()
-                                                        and ssid != self._custom_ssid_name):
+                                                        and self._custom_ssid_name.lower() not in ssid.lower()):
                     return
                 elif self._custom_bssid_addr_is_set() and ap_mac.lower() != self._custom_bssid_addr.lower():
                     return
@@ -407,7 +407,7 @@ def main():
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
-    parser.add_argument('-s', '--ssid', help='custom SSID name (case-sensitive)', metavar="ssid_name",
+    parser.add_argument('-s', '--ssid', help='custom SSID name (case-insensitive)', metavar="ssid_name", # todo case insensitive in docs and filter partial
                         action='store', default=None, dest="custom_ssid", required=False)
     parser.add_argument('-b', '--bssid', help='custom BSSID address (case-insensitive)', metavar="bssid_addr",
                         action='store', default=None, dest="custom_bssid", required=False)
