@@ -394,6 +394,9 @@ def main():
     # TODO autostart only if BSSID is provided
     # TODO autostart docs
     # todo docs - add that its for automation
+    # todo test bssid (bad mac)
+    # todo test ssid (empty, no ssid, etc... check error messages see if correct)
+    # todo test bad clent mac
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
