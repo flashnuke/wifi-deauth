@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import signal
 import logging
 import argparse
@@ -389,8 +390,8 @@ def main():
     printf(DELIM)
     restore_print()
 
-    if "linux" not in platform:
-        raise Exception(f"Unsupported operating system {platform}, only linux is supported...")
+    if "linux" not in sys.platform:
+        raise Exception(f"Unsupported operating system {sys.platform}, only linux is supported...")
     
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
