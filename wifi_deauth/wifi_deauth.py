@@ -47,7 +47,7 @@ class Interceptor:
         self.interface = net_iface
 
         if deauth_intv:
-            Interceptor._DEAUTH_INTV = deauth_intv
+            Interceptor._DEAUTH_INTV = float(deauth_intv)
             print_debug(f"Deauth interval was set to {Interceptor._DEAUTH_INTV}[s]")
         self._max_consecutive_failed_send_cnt = 5 / Interceptor._DEAUTH_INTV  # if fails to send for 5 seconds consecutively
 
