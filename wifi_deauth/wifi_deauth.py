@@ -395,6 +395,8 @@ class Interceptor:
             print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
             sleep(Interceptor._PRINT_STATS_INTV)
+            if Interceptor._ABORT:  # might change while sleeping
+                break
             clear_line(7 + buffer_sz)
 
     def log_debug(self, msg: str):
