@@ -70,7 +70,7 @@ class Interceptor:
                 print_error(f"Failed to kill NetworkManager...")
 
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
-        self.log_debug(f"Supported channels: {self._channel_range.keys()}")
+        self.log_debug(f"Supported channels: {[c for c in self._channel_range.keys()]}")
         self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
         self._custom_ssid_name: Union[str, None] = self.parse_custom_ssid_name(ssid_name)
         self.log_debug(f"Selected custom ssid name: {self._custom_ssid_name}")
