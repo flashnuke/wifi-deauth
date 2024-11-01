@@ -394,7 +394,7 @@ class Interceptor:
             print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
             print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
-            sleep(Interceptor._PRINT_STATS_INVT)
+            sleep(Interceptor._PRINT_STATS_INTV)
             clear_line(7 + buffer_sz)
 
     def log_debug(self, msg: str):
@@ -410,7 +410,7 @@ class Interceptor:
         with Interceptor._ABORT_LCK:
             if not Interceptor._ABORT:
                 Interceptor._ABORT = True
-                sleep(Interceptor._PRINT_STATS_INVT * 1.1)  # let prints finish
+                sleep(Interceptor._PRINT_STATS_INTV * 1.1)  # let prints finish
                 printf(f"{DELIM}")
                 print_error(msg)
                 exit(0)
