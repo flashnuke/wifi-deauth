@@ -332,7 +332,7 @@ class Interceptor:
                     failed_attempts_ctr += 1
                     if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:
                         raise exc
-                    sleep(Interceptor._DEAUTH_INTV)  # sleep to throttle down on exceptions
+                    sleep(Interceptor._DEAUTH_INTV)  # if exception - sleep to throttle down
         except Exception as exc:
             Interceptor.abort_run(f"Exception '{exc}' in deauth-loop -> {traceback.format_exc()}")
 
@@ -369,18 +369,6 @@ class Interceptor:
 
         for t in threads:
             t.join()
-
-        # TODO - I remove daemon
-        # TODO print info stats into thread as well
-        # TODO start all 3 threads and join them
-        # TODO when printing exception somewhere and setting abort as false, put a small sleep (u can wrap it) so that exception prints well
-        # TODO debug prints
-        # TODO test - raise exc and see output
-        # TODO test - start and finish entire run
-        # TODO test - debug
-
-        # TODO update version
-        # TODO docs debug mode
 
     def report_status(self):
         start = get_time()
