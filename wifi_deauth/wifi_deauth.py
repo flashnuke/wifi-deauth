@@ -37,19 +37,15 @@ conf.verb = 0
 class Interceptor:
     _ABORT = False
     _PRINT_STATS_INTV = 1
-    _DEAUTH_INTV = 0.01  # 10[ms]
+    _DEAUTH_INTV = 0.100  # 100[ms]
     _CH_SNIFF_TO = 2
     _SSID_STR_PAD = 42  # total len 80
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart,
-                 deauth_intv, debug_mode):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart, debug_mode):
         self.interface = net_iface
 
-        if deauth_intv:
-            Interceptor._DEAUTH_INTV = float(deauth_intv)
-            print_debug(f"Deauth interval was set to {Interceptor._DEAUTH_INTV}[s]")
-        self._max_consecutive_failed_send_cnt = 5 / Interceptor._DEAUTH_INTV  # if fails to send for 5 seconds consecutively
+        self._max_consecutive_failed_send_cnt = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
 
         self._current_channel_num = None
         self._current_channel_aps = set()
@@ -334,9 +330,9 @@ class Interceptor:
                     failed_attempts_ctr = 0  # reset counter
                 except Exception as exc:
                     failed_attempts_ctr += 1
-                    if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:  # todo place exception in send to test this
+                    if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:
                         raise exc
-                sleep(Interceptor._DEAUTH_INTV)
+                    sleep(Interceptor._DEAUTH_INTV)  # sleep to throttle down on exceptions
         except Exception as exc:
             Interceptor.abort_run(f"Exception '{exc}' in deauth-loop -> {traceback.format_exc()}")
 
@@ -454,8 +450,6 @@ def main():
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
     parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
                         action='store_true', default=False, dest="autostart", required=False)
-    parser.add_argument('--deauth-interval', help='sleep interval between each deauth cycle in seconds (i.e -> 0.1 for 100 milliseconds)',
-                        action='store', default=None, dest="deauth_intv", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
     pargs = parser.parse_args()
@@ -469,7 +463,6 @@ def main():
                            custom_client_macs=pargs.custom_client_macs,
                            custom_channels=pargs.custom_channels,
                            autostart=pargs.autostart,
-                           deauth_intv=pargs.deauth_intv,
                            debug_mode=pargs.debug_mode)
     attacker.run()
 
