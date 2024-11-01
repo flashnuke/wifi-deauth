@@ -355,6 +355,11 @@ class Interceptor:
             t = Thread(target=action, args=tuple(), daemon=True)
             t.start()
 
+        # TODO print info stats into thread as well
+        # TODO start all 3 threads and join them
+        # TODO when printing exception somewhere and setting abort as false, put a small sleep (u can wrap it) so that exception prints well
+        # TODO debug prints
+
         start = get_time()
         printf(f"{DELIM}\n")
 
