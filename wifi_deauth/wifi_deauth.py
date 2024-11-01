@@ -45,7 +45,7 @@ class Interceptor:
                  ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart, debug_mode):
         self.interface = net_iface
 
-        self._max_consecutive_failed_send_cnt = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
+        self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
 
         self._current_channel_num = None
         self._current_channel_aps = set()
@@ -330,7 +330,7 @@ class Interceptor:
                     failed_attempts_ctr = 0  # reset counter
                 except Exception as exc:
                     failed_attempts_ctr += 1
-                    if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:
+                    if failed_attempts_ctr >= self._max_consecutive_failed_send_lim:
                         raise exc
                     sleep(Interceptor._DEAUTH_INTV)  # if exception - sleep to throttle down
         except Exception as exc:
