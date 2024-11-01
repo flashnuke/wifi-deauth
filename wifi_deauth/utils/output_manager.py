@@ -51,6 +51,10 @@ def print_cmd(text):
     printf(f"[{BOLD}{GREEN}>{RESET}] {text}")
 
 
+def print_debug(text):
+    printf(f"[{BOLD}{YELLOW}~{RESET}] {text}")
+
+
 BANNER = f"""
 {BOLD}{RED} __      __ {RESET}__  _____ __         {BOLD}{RED}_________{RESET}                         __   __     
 {BOLD}{RED}/  \    /  \\{RESET}__|/ ____\__|        {BOLD}{RED}\    __  \\{RESET}  _____ ______   __ ___/  |_|  |__  

