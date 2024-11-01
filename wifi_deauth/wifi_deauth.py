@@ -36,7 +36,6 @@ conf.verb = 0
 
 class Interceptor:
     _ABORT = False
-    _ABORT_LCK = threading.Lock()
     _PRINT_STATS_INTV = 1
     _DEAUTH_INTV = 0.1
     _CH_SNIFF_TO = 2
@@ -409,13 +408,12 @@ class Interceptor:
 
     @staticmethod
     def abort_run(msg: str):
-        with Interceptor._ABORT_LCK:
-            if not Interceptor._ABORT:
-                Interceptor._ABORT = True
-                sleep(Interceptor._PRINT_STATS_INTV * 1.1)  # let prints finish
-                printf(f"{DELIM}")
-                print_error(msg)
-                exit(0)
+        if not Interceptor._ABORT:  # thread-safe due to GIL
+            Interceptor._ABORT = True
+            sleep(Interceptor._PRINT_STATS_INTV * 1.1)  # let prints finish
+            printf(f"{DELIM}")
+            print_error(msg)
+            exit(0)
 
 
 def main():
