@@ -37,7 +37,7 @@ conf.verb = 0
 class Interceptor:
     _ABORT = False
     _PRINT_STATS_INTV = 1
-    _DEAUTH_INTV = 0.1
+    _DEAUTH_INTV = 0.05  # 50[ms]
     _CH_SNIFF_TO = 2
     _SSID_STR_PAD = 42  # total len 80
 
