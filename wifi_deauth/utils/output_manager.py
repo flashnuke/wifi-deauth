@@ -52,7 +52,7 @@ def print_cmd(text):
 
 
 def print_debug(text):
-    printf(f"[{BOLD}{RED}~{RESET}] {text}")
+    printf(f"[{BOLD}{YELLOW}~{RESET}] {text}")
 
 
 BANNER = f"""
