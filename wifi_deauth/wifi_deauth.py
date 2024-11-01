@@ -331,7 +331,7 @@ class Interceptor:
                     failed_attempts_ctr += 1
                     if failed_attempts_ctr >= self._max_consecutive_failed_send_cnt:  # todo place exception in send to test this
                         raise exc
-            sleep(Interceptor._DEAUTH_INTV)
+                sleep(Interceptor._DEAUTH_INTV)
         except Exception as exc:
             Interceptor.abort_run(f"Exception in deauth-loop -> {traceback.format_exc()}")
 
