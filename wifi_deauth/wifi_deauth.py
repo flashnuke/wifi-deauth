@@ -160,8 +160,8 @@ class Interceptor:
         # run these cmds regardless of debug mode
         iface_enabled = os.system(f"sudo ip link show {self.interface} | grep 'state UP'")
         mm_enabled = os.system(f"sudo iw {self.interface} info | grep 'type monitor'")
-        self.log_debug(f"Interface is enabled -> {iface_enabled is 0}")
-        self.log_debug(f"Monitor mode is enabled -> {mm_enabled is 0}")
+        self.log_debug(f"Interface is enabled -> {iface_enabled == 0}")
+        self.log_debug(f"Monitor mode is enabled -> {mm_enabled == 0}")
 
         return True
 
