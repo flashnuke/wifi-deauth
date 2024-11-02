@@ -158,7 +158,7 @@ class Interceptor:
                 return False
 
         # run these cmds regardless of debug mode
-        time.sleep(2)  # give the interface some time to set up
+        sleep(2)  # give the interface some time to set up
         iface_enabled = os.system(f"sudo ip link show {self.interface} | grep 'state DOWN' > /dev/null 2>&1")
         mm_enabled = os.system(f"sudo iw {self.interface} info | grep 'type monitor' > /dev/null 2>&1")
         self.log_debug(f"Interface is enabled -> {iface_enabled != 0}")
