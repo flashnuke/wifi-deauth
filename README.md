@@ -49,6 +49,7 @@ sudo python3 wifi_deauth.py -i <iface>
 * `--ssid <name>` - filter for a specific SSID by a case-insensitive substring (this should shorten the channel-scanning duration), whitespaces should be passed with an escape character (i.e -> `new\ york`)
 * `--bssid <addr>` - filter for a specific BSSID (the access point's MAC address), case in-sensitive
 * `--autostart` - start the de-auth loop automatically, works only when one access point is found
+* `--spam-all-channels` - spam de-auth packets on all channels iteratively (good against access points that recover on different channels)
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
 * `--clients <m_addr1,m_addr2>` - target only specific clients to disconnect from the AP, otherwise all connected clients will be targeted (note: using this option disables deauth broadcast)
 * `--debug` - enable debug prints
@@ -60,6 +61,7 @@ sudo python3 wifi_deauth.py -i <iface>
 * Works for 2.4GHhz and 5Ghz
 * Beware that some access points have protections against this kind of attack and therefore it might not work on them
 * Setting custom client mac addresses (`--clients`) is not suggested, as some clients might reconnect using a random MAC address which is different than the one set
+* Some access points use a protection mechanism where they switch channels - in that case it's suggested to use `--spam-all-channels`
 
 ### Requirements
 * Linux OS
