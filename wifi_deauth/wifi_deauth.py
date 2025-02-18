@@ -42,7 +42,7 @@ class Interceptor:
     _SSID_STR_PAD = 42  # total len 80
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart, debug_mode):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, spam_all_channels, autostart, debug_mode):
         self.interface = net_iface
 
         self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
@@ -84,6 +84,9 @@ class Interceptor:
         self._custom_target_ap_last_ch = 0  # to avoid overlapping
         self._midrun_output_buffer: List[str] = list()
         self._midrun_output_lck = threading.RLock()
+
+        self._spam_all_channels = spam_all_channels
+        self.log_debug(f"Spamming all channels: {self._spam_all_channels}")
 
         self._autostart = autostart
 
@@ -203,8 +206,11 @@ class Interceptor:
         except Exception as exc:
             pass
 
+    def _get_channel_range(self):
+        return self._custom_target_ap_channels or self._channel_range.keys()  # TODO verify this does break (using keys(), previosuly was without keys(), enumerate might break?)
+
     def _scan_channels_for_aps(self):
-        channels_to_scan = self._custom_target_ap_channels or self._channel_range
+        channels_to_scan = self._get_channel_range()
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
         if self._custom_ssid_name_is_set():
             print_info(f"Scanning for target SSID -> {self._custom_ssid_name}")
@@ -330,6 +336,8 @@ class Interceptor:
             ap_mac = self.target_ssid.mac_addr
             while not Interceptor._ABORT:
                 try:
+                    if self._spam_all_channels:
+                        self._iter_next_channel()
                     self.attack_loop_count += 1
                     for client_mac in self._get_target_clients():
                         self._send_deauth_client(ap_mac, client_mac)
@@ -412,6 +420,16 @@ class Interceptor:
             print_error(msg)
             exit(0)
 
+    def _iter_next_channel(self):
+        pass
+
+    def _channels_generator(self):
+        ch_range = self._get_channel_range()
+        ctr = 0
+        while not Interceptor._ABORT:
+            yield ch_range[ctr]
+            ctr = (ctr + 1) % len(ch_range)  # TODO test to see that all channels are used
+
 
 def main():
     signal.signal(signal.SIGINT, Interceptor.user_abort)
@@ -448,6 +466,8 @@ def main():
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
+    parser.add_argument('-sc', '--spam-all-channels', help='enable de-auther on all channels',
+                        action='store_true', default=False, dest="spam_all_channels", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
@@ -458,6 +478,7 @@ def main():
                            bssid_addr=pargs.custom_bssid,
                            custom_client_macs=pargs.custom_client_macs,
                            custom_channels=pargs.custom_channels,
+                           spam_all_channels=pargs.spam_all_channels,
                            autostart=pargs.autostart,
                            debug_mode=pargs.debug_mode)
     attacker.run()
