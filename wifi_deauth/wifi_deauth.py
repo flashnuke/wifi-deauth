@@ -80,7 +80,7 @@ class Interceptor:
         self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr)
         self.log_debug(f"Selected custom bssid addr: {self._custom_ssid_name}")
         self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
-        self.log_debug(f"Selected arget client mac addrs: {self._custom_target_client_mac}")
+        self.log_debug(f"Selected target client mac addrs: {self._custom_target_client_mac}")
         self._custom_target_ap_channels: List[int] = self.parse_custom_channels(custom_channels)
         self.log_debug(f"Selected target client channels: {self._custom_target_client_mac}")
 
@@ -191,6 +191,9 @@ class Interceptor:
                 for channel in os.popen(f'iwlist {self.interface} channel').readlines()
                 if 'Channel' in channel and 'Current' not in channel]
 
+    def _get_channel_range(self) -> List[int]:
+        return self._custom_target_ap_channels or list(self._channel_range.keys())
+
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
@@ -212,9 +215,6 @@ class Interceptor:
                 self._clients_sniff_cb(pkt)  # pass forward to find potential clients
         except Exception as exc:
             pass
-
-    def _get_channel_range(self) -> List[int]:
-        return self._custom_target_ap_channels or list(self._channel_range.keys())  # TODO verify this does break (using keys(), previosuly was without keys(), enumerate might break?)
 
     def _scan_channels_for_aps(self):
         channels_to_scan = self._get_channel_range()
@@ -435,7 +435,7 @@ class Interceptor:
         ctr = 0
         while not Interceptor._ABORT:
             yield ch_range[ctr]
-            ctr = (ctr + 1) % len(ch_range)  # TODO test to see that all channels are used
+            ctr = (ctr + 1) % len(ch_range)
         return ctr
 
 
@@ -470,9 +470,11 @@ def main():
     parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
                                                  ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
-    parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
+    parser.add_argument('-ch', '--channels',
+                        help='custom channels to scan / de-auth, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
-    parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
+    parser.add_argument('-a', '--autostart',
+                        help='autostart the de-auth loop (if the scan result contains a single access point)',
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
