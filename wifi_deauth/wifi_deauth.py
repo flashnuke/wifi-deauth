@@ -469,7 +469,7 @@ def main():
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
-    parser.add_argument('-sc', '--spam-all-channels', help='enable de-auther on all channels',
+    parser.add_argument('-sac', '--spam-all-channels', help='enable de-auther on all channels',
                         action='store_true', default=False, dest="spam_all_channels", required=False)
     pargs = parser.parse_args()
 
