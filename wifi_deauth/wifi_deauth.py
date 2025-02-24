@@ -7,6 +7,8 @@ import logging
 import argparse
 import threading  # leave it
 
+from typing import Dict, Callable, List, Union
+
 from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
     Dot11QoS, Dot11Deauth, Dot11
 
@@ -87,7 +89,11 @@ class Interceptor:
         self._midrun_output_lck = threading.RLock()
 
         self._spam_all_channels = spam_all_channels
-        print_info(f"De-auth all channels enabled -> {self._spam_all_channels}")
+
+        self._ch_iterator: Union[Callable, None] = None
+        if self._spam_all_channels:
+            self._ch_iterator = self._init_channels_generator()
+        print_info(f"De-auth all channels enabled -> {BOLD}{self._spam_all_channels}{RESET}")
 
         self._autostart = autostart
 
@@ -214,7 +220,7 @@ class Interceptor:
         channels_to_scan = self._get_channel_range()
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
         if self._custom_ssid_name_is_set():
-            print_info(f"Scanning for target SSID -> {self._custom_ssid_name}")
+            print_info(f"Scanning for target SSID -> {BOLD}{self._custom_ssid_name}{RESET}")
         try:
             for idx, ch_num in enumerate(channels_to_scan):
                 if self._custom_ssid_name_is_set() and self._found_custom_ssid_name() \
@@ -222,7 +228,7 @@ class Interceptor:
                     # make sure sniffing doesn't stop on an overlapped channel for custom SSIDs
                     return
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num}, remaining -> "
+                print_info(f"Scanning channel {BOLD}{self._current_channel_num}{RESET}, remaining -> "
                            f"{len(channels_to_scan) - (idx + 1)} ", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=Interceptor._CH_SNIFF_TO,
                       stop_filter=lambda p: Interceptor._ABORT is True)
@@ -422,9 +428,9 @@ class Interceptor:
             exit(0)
 
     def _iter_next_channel(self):
-        pass
+        self._set_channel(self._ch_iterator())
 
-    def _channels_generator(self):
+    def _init_channels_generator(self) -> Callable:
         ch_range = self._get_channel_range()
         ctr = 0
         while not Interceptor._ABORT:
