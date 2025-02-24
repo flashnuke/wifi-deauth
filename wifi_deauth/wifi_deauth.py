@@ -459,7 +459,7 @@ def main():
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
                         action='store', dest="net_iface", metavar="network_interface", required=True)
-    parser.add_argument('-sm', '--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
+    parser.add_argument('--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
@@ -467,10 +467,10 @@ def main():
                         action='store', default=None, dest="custom_ssid", required=False)
     parser.add_argument('-b', '--bssid', help='custom BSSID address (case-insensitive)', metavar="bssid_addr",
                         action='store', default=None, dest="custom_bssid", required=False)
-    parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
-                                                 ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
+    parser.add_argument('--clients', help='MAC addresses of target clients to disconnect,'
+                                          ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
-    parser.add_argument('-ch', '--channels',
+    parser.add_argument('-c', '--channels',
                         help='custom channels to scan / de-auth, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
     parser.add_argument('-a', '--autostart',
@@ -478,7 +478,7 @@ def main():
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
-    parser.add_argument('-dac', '--deauth-all-channels', help='enable de-auther on all channels',
+    parser.add_argument('--deauth-all-channels', help='enable de-auther on all channels',
                         action='store_true', default=False, dest="deauth_all_channels", required=False)
     pargs = parser.parse_args()
 
