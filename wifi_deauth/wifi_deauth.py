@@ -445,9 +445,9 @@ def main():
     restore_print()
 
     if "linux" not in sys.platform:
-        raise Exception(f"Unsupported operating system {sys.platform}, only linux is supported...")
+        raise OSError(f"Unsupported operating system {sys.platform}, only linux is supported...")
     elif os.geteuid() != 0:
-        raise Exception(f"Must be run as root")
+        raise PermissionError(f"Must be run as root")
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
