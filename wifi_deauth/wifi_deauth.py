@@ -90,7 +90,7 @@ class Interceptor:
 
         self._spam_all_channels = spam_all_channels
 
-        self._ch_iterator: Union[Generator[int, None, None], None] = None
+        self._ch_iterator: Union[Generator[int, None, int], None] = None
         if self._spam_all_channels:
             self._ch_iterator = self._init_channels_generator()
         print_info(f"De-auth all channels enabled -> {BOLD}{self._spam_all_channels}{RESET}")
@@ -213,8 +213,8 @@ class Interceptor:
         except Exception as exc:
             pass
 
-    def _get_channel_range(self):
-        return self._custom_target_ap_channels or self._channel_range.keys()  # TODO verify this does break (using keys(), previosuly was without keys(), enumerate might break?)
+    def _get_channel_range(self) -> List[int]:
+        return self._custom_target_ap_channels or list(self._channel_range.keys())  # TODO verify this does break (using keys(), previosuly was without keys(), enumerate might break?)
 
     def _scan_channels_for_aps(self):
         channels_to_scan = self._get_channel_range()
@@ -430,12 +430,13 @@ class Interceptor:
     def _iter_next_channel(self):
         self._set_channel(next(self._ch_iterator))
 
-    def _init_channels_generator(self) -> Generator[int, None, None]:
+    def _init_channels_generator(self) -> Generator[int, None, int]:
         ch_range = self._get_channel_range()
         ctr = 0
         while not Interceptor._ABORT:
             yield ch_range[ctr]
             ctr = (ctr + 1) % len(ch_range)  # TODO test to see that all channels are used
+        return ctr
 
 
 def main():
