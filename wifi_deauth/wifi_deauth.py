@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys  # leave it
 import signal
 import logging
@@ -445,6 +446,8 @@ def main():
 
     if "linux" not in sys.platform:
         raise Exception(f"Unsupported operating system {sys.platform}, only linux is supported...")
+    elif os.geteuid() != 0:
+        raise Exception(f"Must be run as root")
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
