@@ -42,14 +42,15 @@ sudo python3 wifi_deauth.py -i <iface>
 
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
+* `--deauth-all-channels` - try this option if the attack doesn't work (see more in [Optional Arguments](https://github.com/flashnuke/wifi-deauth/tree/main?tab=readme-ov-file#optional-arguments))
 * `--autostart` is good for automation - first make sure that only 1 access point is found, you can use filters (bssid, ssid, channels, etc...) to ensure that
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 
 ### Optional arguments
+* `--deauth-all-channels` - send de-auth packets on all channels iteratively (some access points switch to a different channel as a protection mechanism, this option enables de-authing on all channels)
 * `--ssid <name>` - filter for a specific SSID by a case-insensitive substring (this should shorten the channel-scanning duration), whitespaces should be passed with an escape character (i.e -> `new\ york`)
 * `--bssid <addr>` - filter for a specific BSSID (the access point's MAC address), case in-sensitive
 * `--autostart` - start the de-auth loop automatically, works only when one access point is found
-* `--spam-all-channels` - spam de-auth packets on all channels iteratively (good against access points that recover on different channels)
 * `--channels <ch1,ch2>` - scan for specific channels only, otherwise all supported channels will be scanned
 * `--clients <m_addr1,m_addr2>` - target only specific clients to disconnect from the AP, otherwise all connected clients will be targeted (note: using this option disables deauth broadcast)
 * `--debug` - enable debug prints
@@ -57,11 +58,9 @@ sudo python3 wifi_deauth.py -i <iface>
 * `--skip-monitormode` - enable monitor mode manually (otherwise the program does it automatically)
 
 ### Misc notes
+* Setting custom client mac addresses (`--clients`) is not suggested, as some clients might reconnect using a random MAC address which is different than the one set
 * Check `ifconfig` to find the interface nickname
 * Works for 2.4GHhz and 5Ghz
-* Beware that some access points have protections against this kind of attack and therefore it might not work on them
-* Setting custom client mac addresses (`--clients`) is not suggested, as some clients might reconnect using a random MAC address which is different than the one set
-* Some access points use a protection mechanism where they switch channels - in that case it's suggested to use `--spam-all-channels`
 
 ### Requirements
 * Linux OS
