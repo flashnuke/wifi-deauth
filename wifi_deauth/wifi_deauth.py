@@ -90,7 +90,7 @@ class Interceptor:
 
         self._spam_all_channels = spam_all_channels
 
-        self._ch_iterator: Union[Generator[int], None] = None
+        self._ch_iterator: Union[Generator[int, None, None], None] = None
         if self._spam_all_channels:
             self._ch_iterator = self._init_channels_generator()
         print_info(f"De-auth all channels enabled -> {BOLD}{self._spam_all_channels}{RESET}")
@@ -430,7 +430,7 @@ class Interceptor:
     def _iter_next_channel(self):
         self._set_channel(next(self._ch_iterator))
 
-    def _init_channels_generator(self) -> Generator[int]:
+    def _init_channels_generator(self) -> Generator[int, None, None]:
         ch_range = self._get_channel_range()
         ctr = 0
         while not Interceptor._ABORT:
