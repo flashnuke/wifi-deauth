@@ -45,7 +45,7 @@ class Interceptor:
     _SSID_STR_PAD = 42  # total len 80
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, spam_all_channels, autostart, debug_mode):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, deauth_all_channels, autostart, debug_mode):
         self.interface = net_iface
 
         self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
@@ -88,12 +88,12 @@ class Interceptor:
         self._midrun_output_buffer: List[str] = list()
         self._midrun_output_lck = threading.RLock()
 
-        self._spam_all_channels = spam_all_channels
+        self._deauth_all_channels = deauth_all_channels
 
         self._ch_iterator: Union[Generator[int, None, int], None] = None
-        if self._spam_all_channels:
+        if self._deauth_all_channels:
             self._ch_iterator = self._init_channels_generator()
-        print_info(f"De-auth all channels enabled -> {BOLD}{self._spam_all_channels}{RESET}")
+        print_info(f"De-auth all channels enabled -> {BOLD}{self._deauth_all_channels}{RESET}")
 
         self._autostart = autostart
 
@@ -343,7 +343,7 @@ class Interceptor:
             ap_mac = self.target_ssid.mac_addr
             while not Interceptor._ABORT:
                 try:
-                    if self._spam_all_channels:
+                    if self._deauth_all_channels:
                         self._iter_next_channel()
                     self.attack_loop_count += 1
                     for client_mac in self._get_target_clients():
@@ -478,8 +478,8 @@ def main():
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
-    parser.add_argument('-sac', '--spam-all-channels', help='enable de-auther on all channels',
-                        action='store_true', default=False, dest="spam_all_channels", required=False)
+    parser.add_argument('-dac', '--deauth-all-channels', help='enable de-auther on all channels',
+                        action='store_true', default=False, dest="deauth_all_channels", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
@@ -490,7 +490,7 @@ def main():
                            bssid_addr=pargs.custom_bssid,
                            custom_client_macs=pargs.custom_client_macs,
                            custom_channels=pargs.custom_channels,
-                           spam_all_channels=pargs.spam_all_channels,
+                           deauth_all_channels=pargs.deauth_all_channels,
                            autostart=pargs.autostart,
                            debug_mode=pargs.debug_mode)
     attacker.run()
