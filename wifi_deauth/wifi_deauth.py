@@ -87,7 +87,7 @@ class Interceptor:
         self._midrun_output_lck = threading.RLock()
 
         self._spam_all_channels = spam_all_channels
-        self.log_debug(f"Spamming all channels: {self._spam_all_channels}")
+        print_info(f"De-auth all channels enabled -> {self._spam_all_channels}")
 
         self._autostart = autostart
 
@@ -222,7 +222,7 @@ class Interceptor:
                     # make sure sniffing doesn't stop on an overlapped channel for custom SSIDs
                     return
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num}, remaining: "
+                print_info(f"Scanning channel {self._current_channel_num}, remaining -> "
                            f"{len(channels_to_scan) - (idx + 1)} ", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=Interceptor._CH_SNIFF_TO,
                       stop_filter=lambda p: Interceptor._ABORT is True)
