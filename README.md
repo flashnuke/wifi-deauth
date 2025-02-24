@@ -42,7 +42,7 @@ sudo python3 wifi_deauth.py -i <iface>
 
 ### Usage notes
 *  `<iface>` is the name of the network interface (i.e `wlan0` or `eth0`) that supports packet injection
-* `--deauth-all-channels` - try this option if the attack doesn't work (see more in `Optional arguments`)
+* `--deauth-all-channels` - try this option if the attack doesn't work (see more in [Optional Arguments](https://github.com/flashnuke/wifi-deauth/tree/main?tab=readme-ov-file#optional-arguments))
 * `--autostart` is good for automation - first make sure that only 1 access point is found, you can use filters (bssid, ssid, channels, etc...) to ensure that
 * The initial iteration over all channels might take a minute or two (depends on how many bands the interface supports)
 
