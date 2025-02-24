@@ -223,7 +223,7 @@ class Interceptor:
                     return
                 self._set_channel(ch_num)
                 print_info(f"Scanning channel {self._current_channel_num}, remaining: "
-                           f"{len(channels_to_scan) - (idx + 1)}", end="\r")
+                           f"{len(channels_to_scan) - (idx + 1)} ", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=Interceptor._CH_SNIFF_TO,
                       stop_filter=lambda p: Interceptor._ABORT is True)
         finally:
