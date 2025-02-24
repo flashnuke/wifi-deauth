@@ -7,7 +7,7 @@ import logging
 import argparse
 import threading  # leave it
 
-from typing import Dict, Callable, List, Union
+from typing import Dict, Generator, List, Union
 
 from scapy.layers.dot11 import RadioTap, Dot11Elt, Dot11Beacon, Dot11ProbeResp, Dot11ReassoResp, Dot11AssoResp, \
     Dot11QoS, Dot11Deauth, Dot11
@@ -90,7 +90,7 @@ class Interceptor:
 
         self._spam_all_channels = spam_all_channels
 
-        self._ch_iterator: Union[Callable, None] = None
+        self._ch_iterator: Union[Generator[int], None] = None
         if self._spam_all_channels:
             self._ch_iterator = self._init_channels_generator()
         print_info(f"De-auth all channels enabled -> {BOLD}{self._spam_all_channels}{RESET}")
@@ -428,9 +428,9 @@ class Interceptor:
             exit(0)
 
     def _iter_next_channel(self):
-        self._set_channel(self._ch_iterator())
+        self._set_channel(next(self._ch_iterator))
 
-    def _init_channels_generator(self) -> Callable:
+    def _init_channels_generator(self) -> Generator[int]:
         ch_range = self._get_channel_range()
         ctr = 0
         while not Interceptor._ABORT:
