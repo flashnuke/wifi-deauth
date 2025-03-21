@@ -70,7 +70,7 @@ sudo python3 wifi_deauth.py -i <iface>
 # Deadnet & other projects
 Feel free to check out my other projects, the most recent one being [mod-rootkit](https://github.com/flashnuke/mod-rootkit), which is a Linux kernel-level rootkit designed to hide files, processes, and network activity.
 
-There's another [project](https://github.com/flashnuke/deadnet) that performs a DoS attack on networks, which requires credentials but quite effective nonetheless.
+There's another project ([deadnet](https://github.com/flashnuke/deadnet)) that performs a DoS attack on networks, which requires credentials but quite effective nonetheless.
 
 # Disclaimer
 
