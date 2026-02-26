@@ -16,6 +16,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip' 
           
       - name: Install dependencies
         run: |
@@ -23,5 +24,5 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           
       - name: Run Banner Test
-        # This will fail if there is a SyntaxError or show warnings in the logs
+        # -W error ensures the build fails if SyntaxWarnings exist
         run: python3 -W error -m wifi_deauth.utils.output_manager
