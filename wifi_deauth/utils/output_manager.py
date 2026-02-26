@@ -55,10 +55,16 @@ def print_debug(text):
     printf(f"[{BOLD}{YELLOW}~{RESET}] {text}")
 
 
-BANNER = f"""
+LOGO_SHAPE = r"""
 {BOLD}{RED} __      __ {RESET}__  _____ __         {BOLD}{RED}_________{RESET}                         __   __     
-{BOLD}{RED}/  \    /  \\{RESET}__|/ ____\__|        {BOLD}{RED}\    __  \\{RESET}  _____ ______   __ ___/  |_|  |__  
-{BOLD}{RED}\   \/\/   /{RESET}  \   __\|  |  ______ {BOLD}{RED}|  |  \  \\{RESET}/ ___ \\\  __ \ |  |  \   __|  |  \ 
-{BOLD}{RED} \        /{RESET}|  ||  |  |  | /_____/ {BOLD}{RED}|  |__/  /{RESET}\  ___/| |__\ \|  |  /|  | |   Y  \\
+{BOLD}{RED}/  \    /  \{RESET}__|/ ____\__|        {BOLD}{RED}\    __  \{RESET}  _____ ______   __ ___/  |_|  |__  
+{BOLD}{RED}\   \/\/   /{RESET}  \   __\|  |  ______ {BOLD}{RED}|  |  \  \{RESET}/ ___ \\  __ \ |  |  \   __|  |  \ 
+{BOLD}{RED} \        /{RESET}|  ||  |  |  | /_____/ {BOLD}{RED}|  |__/  /{RESET}\  ___/| |__\ \|  |  /|  | |   Y  \
 {BOLD}{RED}  \__/\__/ {RESET}|__||__|  |__|        {BOLD}{RED} |_______/{RESET}  \____/|______/ ____/ |__| |___|__/ 
 """
+
+BANNER = LOGO_SHAPE.format(
+    BOLD=BOLD,
+    RED=RED,
+    RESET=RESET
+)
