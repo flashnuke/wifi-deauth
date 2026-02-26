@@ -24,4 +24,4 @@ jobs:
           
       - name: Run Banner Test
         # This will fail if there is a SyntaxError or show warnings in the logs
-        run: python3 -m -W error wifi_deauth.utils.output_manager
+        run: python3 -W -m error wifi_deauth.utils.output_manager
