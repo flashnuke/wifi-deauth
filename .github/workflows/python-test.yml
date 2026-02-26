@@ -25,4 +25,4 @@ jobs:
           
       - name: Run Banner Test
         # -W error ensures the build fails if SyntaxWarnings exist
-        run: python3 -W error -m wifi_deauth.utils.output_manager
+        run: python3 -W error::SyntaxWarning -m wifi_deauth.utils.output_manager
