@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wifi-deauth"
+version = "1.45.1"
+description = "WiFi deauthentication tool built with Python using the Scapy library"
+readme = "README.md"
+authors = [{name = "Flashnuke", email = "flashnuke@users.noreply.github.com"}]
+license = {file = "LICENSE"}
+requires-python = ">=3.6"
+dependencies = [
+    "scapy>=2.4.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/flashnuke/wifi-deauth"
+
+[project.scripts]
+wifi-deauth = "wifi_deauth.wifi_deauth:main"

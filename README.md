@@ -23,19 +23,36 @@ After the attacker chooses a target access point to attack, the program:
 
 
 # Usage
-#### Installing on the system
+#### Installing on the system (requires `pipx >= 1.6.0`)
 ```bash
 git clone https://github.com/flashnuke/wifi-deauth.git
 cd wifi-deauth
-sudo pip3 install .
+
+sudo pipx install . --global
+
 sudo wifi-deauth -i <iface>
 ```
 
-#### Running without installing 
+#### Running without installing (using venv)
 ```bash
 git clone https://github.com/flashnuke/wifi-deauth.git
 cd wifi-deauth
-sudo pip3 install -r requirements.txt # install requirements manually
+
+python3 -m venv venv
+source venv/bin/activate
+pip3 install -r requirements.txt
+
+cd wifi_deauth
+sudo ../venv/bin/python wifi_deauth.py -i <iface>  # sudo doesn't inherit the venv, so use the full path
+```
+
+#### Running without installing (no venv - less recommended)
+```bash
+git clone https://github.com/flashnuke/wifi-deauth.git
+cd wifi-deauth
+
+sudo pip3 install -r requirements.txt --break-system-packages
+
 cd wifi_deauth
 sudo python3 wifi_deauth.py -i <iface>
 ```
