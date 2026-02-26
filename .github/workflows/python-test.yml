@@ -24,5 +24,5 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           
       - name: Run Banner Test
-        # -W error ensures the build fails if SyntaxWarnings exist
+        # -W error ensures the build fails if SyntaxWarnings exist (backslashes incompatibility with newer version)
         run: python3 -W error::SyntaxWarning -m wifi_deauth.utils.output_manager
