@@ -23,11 +23,11 @@ After the attacker chooses a target access point to attack, the program:
 
 
 # Usage
-#### Installing on the system
+#### Installing on the system (using `pipx`)
 ```bash
 git clone https://github.com/flashnuke/wifi-deauth.git
 cd wifi-deauth
-sudo pip3 install .
+sudo pipx install . --global
 sudo wifi-deauth -i <iface>
 ```
 
