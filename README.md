@@ -94,3 +94,23 @@ There's another project ([deadnet](https://github.com/flashnuke/deadnet)) that p
 This tool is only for testing and can only be used where strict consent has been given. Do not use it for illegal purposes! It is the end user’s responsibility to obey all applicable local, state and federal laws. I assume no liability and am not responsible for any misuse or damage caused by this tool and software.
 
 Distributed under the GNU License.
+
+
+## Community improvements (branch `improved-scan-multi-bssid-rssi`)
+
+Additions on top of the base tool, developed during a research POC:
+
+| Feature | Flag / file | Why |
+|---------|-------------|-----|
+| Exact BSSID targeting | `-b MAC [-c CH]` | SSID-based targeting silently hits the wrong radio on multi-BSSID networks |
+| Ambiguity guard | `-t SSID` | >1 BSSID matches list all candidates and exit `2` instead of attacking blindly |
+| Multi-BSSID on one radio | `-b mac1,mac2,...` | One physical AP broadcasting several SSIDs is deauthed in a single run |
+| Scan-only mode | `-s` / `--scan` | List every AP + RSSI ranking, no attack, interface auto-restored to managed |
+| Signal ranking & relative distance | `-s` output | Strongest-RSSI ranking with log-distance estimate (P0=-40 dBm @1 m, n=2.7) |
+| Client discovery window | `-L SEC` | Collect the client list before the first frame is sent |
+| To-DS/From-DS-aware detection | (built-in) | Fixes "Confirmed clients: 0" from mis-classified direction frames |
+| Leak-free sniffing | `sniff(store=False)` | Long runs (45 min+) no longer OOM-kill on 1 GB hosts |
+| RSSI direction survey | `tools/survey_point.sh` + `tools/direction_compute.py` | Coarse bearing (front/right/back/left) of each AP from multi-point RSSI surveys |
+| Per-AP run report | `tools/report.py` | Aggregates run logs: clients per AP + OUI vendor lookup (cached, offline fallback) |
+
+See `tools/README.md` for the direction-survey workflow.
