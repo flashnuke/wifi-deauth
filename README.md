@@ -89,6 +89,12 @@ Feel free to check out my other projects, the most recent one being [mod-rootkit
 
 There's another project ([deadnet](https://github.com/flashnuke/deadnet)) that performs a DoS attack on networks, which requires credentials but quite effective nonetheless.
 
+## ☕ Support
+
+If you found this tool useful, you can buy me a coffee. It keeps the project free and maintained - no ads, no strings.
+
+[![Support Me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/flashnuke)
+
 # Disclaimer
 
 This tool is only for testing and can only be used where strict consent has been given. Do not use it for illegal purposes! It is the end user’s responsibility to obey all applicable local, state and federal laws. I assume no liability and am not responsible for any misuse or damage caused by this tool and software.
