@@ -73,6 +73,12 @@ sudo python3 wifi_deauth.py -i <iface>
 * `--debug` - enable debug prints
 * `--kill` (or run `sudo systemctl stop NetworkManager`) - kill NetworkManager service which might interfere with the attack
 * `--skip-monitormode` - enable monitor mode manually (otherwise the program does it automatically)
+* `--nexmon` - compatibility mode for Broadcom chips that use the [Nexmon](https://github.com/seemoo-lab/nexmon) firmware patch (e.g. the internal `bcm4375` chip on a Galaxy S10 running Kali NetHunter). These chips ignore the standard `nl80211` (`iw`) path, so channel hopping silently fails even when monitor mode works with aircrack-ng. This flag routes channel control through `iwconfig` under `LD_PRELOAD=libfakeioctl.so` (the same shim NetHunter uses for `airodump-ng`) and enables monitor mode via `nexutil`.
+* `--nexmon-lib <path>` - path to the Nexmon ioctl-shim library for `--nexmon` (default: auto-detect, e.g. `/usr/lib/libfakeioctl.so`). Can also be set via the `NEXMON_LIBFAKEIOCTL` environment variable.
+
+### NetHunter / Nexmon (internal chip) notes
+* If monitor mode works with aircrack-ng (`airodump-ng` etc.) but this tool fails during the channel scan, your device is most likely using a Nexmon firmware patch. Re-run with `--nexmon` (combine with `--skip-monitormode` if you already enabled monitor mode yourself).
+* The `--nexmon` path relies on `libfakeioctl.so` (shipped by Kali NetHunter) and `nexutil` being present on the device.
 
 ### Misc notes
 * Setting custom client mac addresses (`--clients`) is not suggested, as some clients might reconnect using a random MAC address which is different than the one set
