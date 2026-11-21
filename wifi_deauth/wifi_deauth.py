@@ -44,9 +44,31 @@ class Interceptor:
     _CH_SNIFF_TO = 2
     _SSID_STR_PAD = 42  # total len 80
 
+    # Nexmon (Broadcom firmware patch, e.g. bcm4375 on the Galaxy S10) ignores the
+    # standard nl80211 path that `iw` uses. These are the common locations of the
+    # ioctl-shim library that Kali NetHunter preloads so legacy WEXT ioctls reach it.
+    _NEXMON_LIB_CANDIDATES = [
+        "/usr/lib/libfakeioctl.so",
+        "/system/lib64/libfakeioctl.so",
+        "/system/lib/libfakeioctl.so",
+        "/data/local/tmp/libfakeioctl.so",
+    ]
+
     def __init__(self, net_iface, skip_monitor_mode_setup, kill_networkmanager,
-                 ssid_name, bssid_addr, custom_client_macs, custom_channels, deauth_all_channels, autostart, debug_mode):
+                 ssid_name, bssid_addr, custom_client_macs, custom_channels, deauth_all_channels, autostart, debug_mode,
+                 nexmon_mode=False, nexmon_lib=None):
         self.interface = net_iface
+
+        self._nexmon_mode = nexmon_mode
+        self._nexmon_lib = self._resolve_nexmon_lib(nexmon_lib) if nexmon_mode else None
+        if self._nexmon_mode:
+            if self._nexmon_lib:
+                print_info(f"Nexmon mode enabled -> using LD_PRELOAD shim {BOLD}{self._nexmon_lib}{RESET}")
+            else:
+                print_error(f"Nexmon mode enabled but no libfakeioctl.so shim was found "
+                            f"(checked {Interceptor._NEXMON_LIB_CANDIDATES}).")
+                print_error(f"Channel control will be attempted without LD_PRELOAD and may not work. "
+                            f"Pass the correct path with {BOLD}--nexmon-lib{RESET}.")
 
         self._max_consecutive_failed_send_lim = 5 / Interceptor._DEAUTH_INTV  # fails to send for 5 consecutive seconds
 
@@ -158,7 +180,38 @@ class Interceptor:
                         raise Exception("Unsupported channel")
         return ch_list
 
+    @staticmethod
+    def _resolve_nexmon_lib(nexmon_lib: Union[None, str]) -> Union[None, str]:
+        # explicit path (CLI flag or NEXMON_LIBFAKEIOCTL env) wins, else probe known locations
+        candidates = []
+        if nexmon_lib:
+            candidates.append(nexmon_lib)
+        candidates += Interceptor._NEXMON_LIB_CANDIDATES
+        for path in candidates:
+            if path and os.path.isfile(path):
+                return path
+        return None
+
+    def _nexmon_preload_prefix(self) -> str:
+        # prefix for subprocess cmds so the Nexmon shim intercepts their legacy WEXT ioctls
+        if self._nexmon_mode and self._nexmon_lib:
+            return f"LD_PRELOAD={self._nexmon_lib} "
+        return ""
+
     def _enable_monitor_mode(self):
+        if self._nexmon_mode:
+            # Nexmon firmware is toggled into (active) monitor mode via nexutil, not `iw`.
+            # nexutil talks to the firmware directly, so it needs no LD_PRELOAD shim.
+            for cmd in [f"sudo ip link set {self.interface} down",
+                        f"sudo nexutil -I{self.interface} -m2",
+                        f"sudo ip link set {self.interface} up"]:
+                print_cmd(f"Running command -> '{BOLD}{cmd}{RESET}'")
+                if os.system(cmd):
+                    os.system(f"sudo ip link set {self.interface} up")  # re-enable iface if needed
+                    return False
+            sleep(2)
+            return True
+
         for cmd in [f"sudo ip link set {self.interface} down",
                     f"sudo iw {self.interface} set monitor control",
                     f"sudo ip link set {self.interface} up"]:
@@ -183,13 +236,25 @@ class Interceptor:
         return not os.system(cmd)
 
     def _set_channel(self, ch_num):
-        os.system(f"iw dev {self.interface} set channel {ch_num}")
+        if self._nexmon_mode:
+            # `iw ... set channel` (nl80211) is ignored by Nexmon firmware. Use the legacy
+            # WEXT ioctl via iwconfig under LD_PRELOAD so the shim redirects it to the
+            # firmware -- the same path NetHunter uses to let airodump-ng hop channels.
+            os.system(f"{self._nexmon_preload_prefix()}iwconfig {self.interface} channel {ch_num}")
+        else:
+            os.system(f"iw dev {self.interface} set channel {ch_num}")
         self._current_channel_num = ch_num
 
     def _get_channels(self) -> List[int]:
-        return [int(channel.split('Channel')[1].split(':')[0].strip())
-                for channel in os.popen(f'iwlist {self.interface} channel').readlines()
-                if 'Channel' in channel and 'Current' not in channel]
+        channels = [int(channel.split('Channel')[1].split(':')[0].strip())
+                    for channel in os.popen(f'{self._nexmon_preload_prefix()}iwlist {self.interface} channel').readlines()
+                    if 'Channel' in channel and 'Current' not in channel]
+        if not channels:
+            # iwlist can come back empty on Nexmon/NetHunter; fall back to the standard
+            # 2.4GHz channel set so the scan can still run instead of finding nothing.
+            self.log_debug("Could not parse channels from iwlist, falling back to 2.4GHz channels 1-13")
+            channels = list(range(1, 14))
+        return channels
 
     def _get_channel_range(self) -> List[int]:
         return self._custom_target_ap_channels or list(self._channel_range.keys())
@@ -480,6 +545,15 @@ def main():
                         action='store_true', default=False, dest="debug_mode", required=False)
     parser.add_argument('--deauth-all-channels', help='enable de-auther on all channels',
                         action='store_true', default=False, dest="deauth_all_channels", required=False)
+    parser.add_argument('--nexmon', help='enable Nexmon-compatibility mode for Broadcom chips that use the Nexmon '
+                                         'firmware patch (e.g. the internal bcm4375 chip on a Galaxy S10 running Kali '
+                                         'NetHunter); routes channel/monitor control through iwconfig+nexutil under '
+                                         'LD_PRELOAD so the firmware honors it',
+                        action='store_true', default=False, dest="nexmon_mode", required=False)
+    parser.add_argument('--nexmon-lib', help='path to the Nexmon ioctl-shim library used with --nexmon '
+                                             '(default: auto-detect, e.g. /usr/lib/libfakeioctl.so)',
+                        metavar="path", action='store',
+                        default=os.environ.get("NEXMON_LIBFAKEIOCTL"), dest="nexmon_lib", required=False)
     pargs = parser.parse_args()
 
     invalidate_print()  # after arg parsing
@@ -492,7 +566,9 @@ def main():
                            custom_channels=pargs.custom_channels,
                            deauth_all_channels=pargs.deauth_all_channels,
                            autostart=pargs.autostart,
-                           debug_mode=pargs.debug_mode)
+                           debug_mode=pargs.debug_mode,
+                           nexmon_mode=pargs.nexmon_mode,
+                           nexmon_lib=pargs.nexmon_lib)
     attacker.run()
 
 
